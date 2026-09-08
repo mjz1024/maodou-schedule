@@ -3534,13 +3534,17 @@ async function syncLocalToCloud() {
     let items = Array.isArray(localData) ? localData : [localData];
     if (items.length === 0) continue;
     items = items.map(function(item) {
-      // For string arrays (photographers), wrap in {name: xxx} object
+      // For string arrays (photographers), wrap in object with unique _id
       if (cfg.type === 'stringArray' && typeof item === 'string') {
-        return Object.assign({ name: item }, {
+        var photoId = (cfg.masterId || 'default') + '|' + item;
+        return {
+          _id: photoId,
+          name: item,
           _syncAt: new Date().toISOString(),
           _env: CLOUDBASE_ENV,
-          _device: DB && DB.getDeviceId ? DB.getDeviceId() : 'unknown'
-        }, { _masterId: cfg.masterId });
+          _device: DB && DB.getDeviceId ? DB.getDeviceId() : 'unknown',
+          _masterId: cfg.masterId
+        };
       }
       return Object.assign({}, item, {
         _syncAt: new Date().toISOString(),
@@ -3574,6 +3578,58 @@ function startCloudWatchers() {
       cloudWatchers[cfg.name] = watcher;
     } catch (err) {
       console.warn('[CloudBase] Failed to watch ' + cfg.name + ':', err.message);
+    }
+  });
+}
+
+// ===== Sync throttle & heartbeat =====
+let syncDebounceTimer = null;
+let syncIntervalId = null;
+
+function syncCloudImmediate() {
+  if (syncDebounceTimer) { clearTimeout(syncDebounceTimer); syncDebounceTimer = null; }
+  if (cloudSyncEnabled) {
+    syncLocalToCloud().then(function() {
+      console.log('[CloudBase] Immediate push done');
+    });
+  }
+}
+
+function scheduleSync() {
+  if (!cloudSyncEnabled) return;
+  if (syncDebounceTimer) { clearTimeout(syncDebounceTimer); }
+  syncDebounceTimer = setTimeout(function() {
+    syncDebounceTimer = null;
+    syncLocalToCloud().then(function() {
+      console.log('[CloudBase] Debounced push done');
+    });
+  }, 2000);
+}
+
+function startSyncHeartbeat() {
+  if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
+  if (!cloudSyncEnabled) return;
+  syncIntervalId = setInterval(function() {
+    if (navigator.onLine && cloudSyncEnabled) {
+      pullCloudToLocal().then(function() {
+        renderAll();
+      });
+    }
+  }, 30000);
+  console.log('[CloudBase] Heartbeat started (30s)');
+}
+
+function stopSyncHeartbeat() {
+  if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
+}
+
+// Auto-pull when page becomes visible
+if (document.addEventListener) {
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && cloudSyncEnabled && navigator.onLine) {
+      pullCloudToLocal().then(function(pulled) {
+        if (pulled) { renderAll(); }
+      });
     }
   });
 }
@@ -3731,38 +3787,28 @@ async function pullCloudToLocal() {
       localStorage.setItem('ps_chat_messages', JSON.stringify(Object.keys(chatMap).map(function(k) { return chatMap[k]; })));
     }
 
-    // 6. Pull ALL photographers (not filtered by _masterId, get everything)
+    // 6. Pull ALL photographers - REPLACE local data with cloud data
     var photoData = await getAllDocs('photographers');
     if (photoData.length > 0) {
-      // Group by _masterId, reconstruct name arrays
       var photoByMaster = {};
       photoData.forEach(function(doc) {
         var mid = doc._masterId || '_default';
         if (!photoByMaster[mid]) photoByMaster[mid] = [];
-        // Try to extract name: doc.name (new format) or reconstruct from string (old broken format)
         if (doc.name && typeof doc.name === 'string') {
-          if (photoByMaster[mid].indexOf(doc.name) < 0) photoByMaster[mid].push(doc.name);
-        } else if (typeof doc.data === 'string') {
-          if (photoByMaster[mid].indexOf(doc.data) < 0) photoByMaster[mid].push(doc.data);
-        } else if (Array.isArray(doc.data)) {
-          doc.data.forEach(function(p) {
-            if (typeof p === 'string' && photoByMaster[mid].indexOf(p) < 0) photoByMaster[mid].push(p);
-          });
+          photoByMaster[mid].push(doc.name);
         }
       });
-      // Save to localStorage
+      // Replace local data (not merge) to handle deletions
       Object.keys(photoByMaster).forEach(function(mid) {
         var key = mid === '_default' ? null : ('ps_photographers_' + mid);
         if (key) {
-          var existing = JSON.parse(localStorage.getItem(key) || '[]');
-          photoByMaster[mid].forEach(function(p) { if (existing.indexOf(p) < 0) existing.push(p); });
-          localStorage.setItem(key, JSON.stringify(existing));
+          localStorage.setItem(key, JSON.stringify(photoByMaster[mid]));
         }
       });
       console.log('[CloudBase] Pulled ' + photoData.length + ' photographer docs');
     }
 
-    // 7. Pull ALL hotels
+    // 7. Pull ALL hotels - REPLACE local data with cloud data
     var hotelData = await getAllDocs('hotels');
     if (hotelData.length > 0) {
       var hotelByMaster = {};
@@ -3771,16 +3817,12 @@ async function pullCloudToLocal() {
         if (!hotelByMaster[mid]) hotelByMaster[mid] = {};
         if (doc.id) hotelByMaster[mid][doc.id] = doc;
       });
+      // Replace local data (not merge) to handle deletions
       Object.keys(hotelByMaster).forEach(function(mid) {
         var key = mid === '_default' ? null : ('ps_hotels_' + mid);
         if (key) {
-          var localHotels = JSON.parse(localStorage.getItem(key) || '[]');
-          var hotelMap = {};
-          localHotels.forEach(function(h) { if (h.id) hotelMap[h.id] = h; });
-          Object.keys(hotelByMaster[mid]).forEach(function(hid) {
-            hotelMap[hid] = hotelByMaster[mid][hid];
-          });
-          localStorage.setItem(key, JSON.stringify(Object.keys(hotelMap).map(function(k) { return hotelMap[k]; })));
+          var hotels = Object.keys(hotelByMaster[mid]).map(function(k) { return hotelByMaster[mid][k]; });
+          localStorage.setItem(key, JSON.stringify(hotels));
         }
       });
       console.log('[CloudBase] Pulled ' + hotelData.length + ' hotel docs');
@@ -3817,7 +3859,7 @@ window.addEventListener('online', function() {
   if (cloudSyncEnabled) {
     showToast('网络已恢复，正在同步云端数据', 'info');
     pullCloudToLocal().then(function() {
-      syncLocalToCloud();
+      syncCloudImmediate();
       renderAll();
     });
   }
@@ -4213,242 +4255,17 @@ function kickDevice(userId, deviceId, password) {
       return;
     }
     currentUser = user;
-    DB.setSession({ username: user.username });
+    DB.setUsers(users);
     DB.registerSession(user.id);
+    DB.setSession({ username: user.username });
     clearAuthFields();
     showApp();
-    showToast('主账号登录成功', 'success');
-    return;
+    // Push new user to cloud immediately
+    syncCloudImmediate();
+    showToast('主账号注册成功，已创建默认团队人员', 'success');
   }
 }
 
-function init() {
-  loadPreloadedData();
-  applyTheme();
-
-  const session = DB.getSession();
-  if (session) {
-    const users = DB.getUsers();
-    const user = users.find(u => u.username === session.username || (session.phone && u.phone === session.phone));
-    if (user) {
-      // Check session validity for all roles
-      if (!DB.isSessionValid(user.id)) {
-        DB.setSession(null);
-        DB.removeSession(user.id);
-        showAuth();
-        const msg = user.role === 'master' ? '您的账号已在其他设备登录，请重新登录' : '会话已过期，请重新登录';
-        showToast(msg, 'warning');
-        return;
-      }
-
-      currentUser = user;
-      // Update session activity
-      DB.updateSessionActivity(user.id);
-
-      // Increment visitCount for sub account
-      if (user.role === 'sub') {
-        user.visitCount = (user.visitCount || 0) + 1;
-        const idx = users.findIndex(u => u.id === user.id);
-        if (idx >= 0) {
-          users[idx].visitCount = user.visitCount;
-          DB.setUsers(users);
-        }
-      }
-      // Initialize default photographers for master if none exist
-      if (user.role === 'master') {
-        const key = 'ps_photographers_' + user.id;
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, JSON.stringify(['摄影师A', '摄影师B', '摄影师C']));
-        }
-      }
-      showApp();
-      return;
-    }
-  }
-  showAuth();
-}
-
-// ===== Calendar Swipe =====
-(function setupCalendarSwipe() {
-  const view = document.getElementById('calendarView');
-  if (!view) return;
-  let startX = 0, startY = 0, isSwiping = false;
-  view.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      isSwiping = true;
-    }
-  }, { passive: true });
-  view.addEventListener('touchmove', e => {
-    if (!isSwiping || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    // Cancel swipe if vertical scroll dominates
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
-      isSwiping = false;
-    }
-  }, { passive: true });
-  view.addEventListener('touchend', e => {
-    if (!isSwiping) return;
-    isSwiping = false;
-    const dx = e.changedTouches[0].clientX - startX;
-    const threshold = 50;
-    if (Math.abs(dx) < threshold) return;
-    if (dx < 0) {
-      // swipe left → next month
-      currentMonth++;
-      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    } else {
-      // swipe right → previous month
-      currentMonth--;
-      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    }
-    renderCalendar();
-  });
-})();
-
-// ===== Backup & Restore =====
-function exportBackup() {
-  const data = {
-    users: DB.getUsers(),
-    schedules: DB.getAllSchedules(),
-    daySettings: DB.getDaySettings(),
-    chatMessages: DB.getChatMessages(),
-    settings: DB.getSettings(),
-    photographers: {},
-    hotels: {},
-    exportDate: new Date().toISOString(),
-    version: APP_VERSION
-  };
-  // Collect all photographer lists
-  const keys = Object.keys(localStorage).filter(k => k.startsWith('ps_photographers_'));
-  keys.forEach(k => {
-    data.photographers[k] = JSON.parse(localStorage.getItem(k) || '[]');
-  });
-  // Collect all hotel databases
-  const hotelKeys = Object.keys(localStorage).filter(k => k.startsWith('ps_hotels_'));
-  hotelKeys.forEach(k => {
-    data.hotels[k] = JSON.parse(localStorage.getItem(k) || '[]');
-  });
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const filename = 'maodou-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-  nativeDownload(filename, blob, 'application/json');
-  showToast('备份已导出', 'success');
-}
-
-function importBackup(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.users || !data.schedules) {
-        return showToast('备份文件格式不正确', 'error');
-      }
-      if (!confirm('恢复备份将覆盖当前所有数据，确定继续？')) {
-        input.value = '';
-        return;
-      }
-      DB.setUsers(data.users);
-      DB.setSchedules(data.schedules);
-      if (data.daySettings) DB.setDaySettings(data.daySettings);
-      if (data.chatMessages) DB.setChatMessages(data.chatMessages);
-      if (data.settings) DB.setSettings(data.settings);
-      if (data.photographers) {
-        Object.entries(data.photographers).forEach(([k, v]) => {
-          localStorage.setItem(k, JSON.stringify(v));
-        });
-      }
-      if (data.hotels) {
-        Object.entries(data.hotels).forEach(([k, v]) => {
-          localStorage.setItem(k, JSON.stringify(v));
-        });
-      }
-      input.value = '';
-      showToast('数据恢复成功，即将刷新页面', 'success');
-      setTimeout(() => location.reload(), 1200);
-    } catch (err) {
-      input.value = '';
-      showToast('备份文件解析失败', 'error');
-    }
-  };
-  reader.readAsText(file);
-}
-
-// ===== Theme =====
-function applyTheme() {
-  const settings = DB.getSettings();
-  let mode = settings.themeMode || 'auto';
-  let isDark = false;
-  
-  if (mode === 'auto') {
-    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } else if (mode === 'dark' || mode === 'blackgold') {
-    isDark = true;
-  } else {
-    isDark = false;
-  }
-  
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-
-  let theme;
-  switch(mode) {
-    case 'champagne': theme = themeChampagne; break;
-    case 'blackgold': theme = themeBlackGold; break;
-    case 'light': theme = themePink; break;
-    case 'dark': theme = themeDarkGreen; break;
-    default: theme = isDark ? themeDarkGreen : themePink;
-  }
-  
-  const root = document.documentElement.style;
-  for (const [k, v] of Object.entries(theme)) {
-    root.setProperty(k, v);
-  }
-
-  // Update color wheel active states
-  ['auto', 'light', 'dark', 'champagne', 'blackgold'].forEach(m => {
-    const btn = document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1));
-    if (btn) btn.classList.toggle('active', mode === m);
-  });
-
-  const icon = document.getElementById('themeIcon');
-  if (icon) {
-    if (isDark) {
-      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-    } else {
-      icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-    }
-  }
-}
-
-function toggleThemeMode() {
-  const settings = DB.getSettings();
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  settings.themeMode = isDark ? 'light' : 'dark';
-  DB.setSettings(settings);
-  applyTheme();
-}
-
-function setThemeMode(mode) {
-  const settings = DB.getSettings();
-  settings.themeMode = mode;
-  DB.setSettings(settings);
-  applyTheme();
-}
-
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  const settings = DB.getSettings();
-  if (settings.themeMode === 'auto') applyTheme();
-});
-
-// ===== Auth =====
-function showAuth() {
-  document.getElementById('authPage').style.display = 'flex';
-  document.getElementById('mainApp').classList.remove('active');
-  fillInviteCodeFromUrl();
-}
 function showApp() {
   document.getElementById('authPage').style.display = 'none';
   document.getElementById('mainApp').classList.add('active');
@@ -4486,6 +4303,7 @@ function showApp() {
   renderAll();
   // After initial render, pull cloud data and re-render
   pullCloudToLocal().then(function() {
+    syncCloudImmediate();
     renderAll();
     showToast('云端数据同步完成', 'success');
   }).catch(function() {});
@@ -5644,7 +5462,7 @@ function toggleDeliveredCard(scheduleId) {
   }
   renderSchedules();
   renderCalendar();
-  syncLocalToCloud();
+  scheduleSync();
 }
 
 function restoreDeliveredCard(scheduleId) {
@@ -5661,7 +5479,7 @@ function restoreDeliveredCard(scheduleId) {
   showToast('已恢复至正常状态', 'success');
   renderSchedules();
   renderCalendar();
-  syncLocalToCloud();
+  scheduleSync();
 }
 
 function formatDeliveredStamp(isoDate) {
