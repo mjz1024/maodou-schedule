@@ -904,6 +904,26 @@ select.form-input {
   min-width: 0;
 }
 
+.timeline-card.delivered {
+  background: var(--bg);
+  border-color: var(--border);
+  opacity: 0.55;
+  filter: grayscale(0.8);
+}
+.timeline-card.delivered .client-name,
+.timeline-card.delivered .meta-value,
+.timeline-card.delivered .card-remarks {
+  color: var(--text-muted);
+}
+.timeline-card.delivered .meta-value.money,
+.timeline-card.delivered .meta-value.balance {
+  color: var(--text-muted);
+}
+.timeline-card.delivered .status-tag {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-muted);
+}
+
 .timeline-card .card-top {
   display: flex;
   justify-content: space-between;
@@ -2728,6 +2748,7 @@ select.form-input {
                 <th>剩余尾款</th>
                 <th>到场时间</th>
                 <th>备注</th>
+                <th>状态</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -3183,7 +3204,7 @@ select.form-input {
       <div class="form-row" style="flex-wrap:wrap;gap:10px;">
         <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
           <input type="checkbox" id="fPersonConfirmed" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;">指定</label>
+          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;">指定人员</label>
         </div>
         <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
           <input type="checkbox" id="fNoMorningGown" style="width:18px;height:18px;cursor:pointer;">
@@ -3196,6 +3217,10 @@ select.form-input {
         <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
           <input type="checkbox" id="fDualCamera" style="width:18px;height:18px;cursor:pointer;">
           <label for="fDualCamera" style="cursor:pointer;font-weight:400;margin:0;">双机</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
+          <input type="checkbox" id="fDelivered" style="width:18px;height:18px;cursor:pointer;">
+          <label for="fDelivered" style="cursor:pointer;font-weight:400;margin:0;">已交付</label>
         </div>
       </div>
       <div class="form-row">
@@ -5290,10 +5315,10 @@ function renderDayDetail() {
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
-        <div class="timeline-card">
+        <div class="timeline-card${s.delivered ? ' delivered' : ''}">
           <div class="card-top">
             <div>
-              <div class="client-name">${escHtml(s.clientName)}</div>
+              <div class="client-name">${escHtml(s.clientName)}${s.delivered ? ' <span style="font-size:11px;color:var(--text-muted);font-weight:400;background:rgba(107,114,128,0.15);padding:1px 6px;border-radius:4px;margin-left:4px;">已交付</span>' : ''}</div>
               ${s.photographer ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${escHtml(s.photographer)}${s.personConfirmed ? ' <span style="color:var(--success);font-weight:600;">✓</span>' : ''}</div>` : ''}
               ${[s.hotel, s.hall, s.planner].filter(Boolean).length > 0 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml([s.hotel, s.hall, s.planner].filter(Boolean).join(' · '))}</div>` : ''}
             </div>
@@ -5321,8 +5346,9 @@ function renderDayDetail() {
   // Desktop table
   tbody.innerHTML = schedules.map(s => {
     const balance = calcBalanceVal(s.deposit, s.totalAmount);
+    const trStyle = s.delivered ? ' style="background:#f0f0f0;opacity:0.55;filter:grayscale(0.8);"' : '';
     return `
-      <tr>
+      <tr${trStyle}>
         <td>${escHtml(s.shootDate || selectedDate || '-')}</td>
         <td style="font-weight:600;">${escHtml(s.clientName)}</td>
         <td>${escHtml(s.hotel || '-')}</td>
@@ -5334,6 +5360,7 @@ function renderDayDetail() {
         <td style="color:${balance <= 0 ? 'var(--success)' : 'var(--warning)'};font-weight:600;">${s.totalAmount != null ? formatMoney(balance) : '-'}</td>
         <td>${escHtml(s.arrivalTime || '-')}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.remarks || '')}">${escHtml(s.remarks || '-')}</td>
+        <td>${s.delivered ? '<span style="color:var(--text-muted);font-size:11px;background:rgba(107,114,128,0.1);padding:2px 6px;border-radius:4px;">已交付</span>' : '-'}</td>
         <td>
           <div class="table-actions">
             ${isMaster ? `
@@ -5516,6 +5543,7 @@ function openScheduleModal(id) {
     document.getElementById('fNoMorningGown').checked = !!s.noMorningGown;
     document.getElementById('fPickup').checked = !!s.pickup;
     document.getElementById('fDualCamera').checked = !!s.dualCamera;
+    document.getElementById('fDelivered').checked = !!s.delivered;
   } else {
     title.textContent = '新建档期';
     document.getElementById('fClientName').value = '';
@@ -5527,6 +5555,7 @@ function openScheduleModal(id) {
     document.getElementById('fNoMorningGown').checked = false;
     document.getElementById('fPickup').checked = false;
     document.getElementById('fDualCamera').checked = false;
+    document.getElementById('fDelivered').checked = false;
     document.getElementById('fOrderDate').value = formatDateStr(new Date());
     if (selectedDate) document.getElementById('fShootDate').value = selectedDate;
     else document.getElementById('fShootDate').value = formatDateStr(new Date());
@@ -5600,6 +5629,7 @@ function saveSchedule() {
     noMorningGown: document.getElementById('fNoMorningGown').checked,
     pickup: document.getElementById('fPickup').checked,
     dualCamera: document.getElementById('fDualCamera').checked,
+    delivered: document.getElementById('fDelivered').checked,
     orderDate: document.getElementById('fOrderDate').value,
     shootDate: shootDate,
     photographer: document.getElementById('fPhotographer').value,
@@ -6110,12 +6140,13 @@ function exportExcel(all) {
   }
   if (schedules.length === 0) return showToast('暂无数据可导出', 'error');
 
-  const headers = ['客户', '合作伙伴', '厅名', '策划师', '下单日期', '拍摄日期', '指定人员', '副机位人员', '指定', '无晨袍', '接送', '双机', '总额', '定金', '剩余尾款', '到场时间', '备注'];
+  const headers = ['客户', '合作伙伴', '厅名', '策划师', '下单日期', '拍摄日期', '指定人员', '副机位人员', '指定人员', '无晨袍', '接送', '双机', '已交付', '总额', '定金', '剩余尾款', '到场时间', '备注'];
   const rows = schedules.map(s => [
     s.clientName || '', s.hotel || '', s.hall || '', s.planner || '',
     s.orderDate || '', s.shootDate || '', s.photographer || '', s.secondPhotographer || '',
     s.personConfirmed ? '是' : '否', s.noMorningGown ? '是' : '否',
     s.pickup ? '是' : '否', s.dualCamera ? '是' : '否',
+    s.delivered ? '是' : '否',
     s.totalAmount || 0, s.deposit || 0, calcBalanceVal(s.deposit, s.totalAmount),
     s.arrivalTime || '', s.remarks || '',
   ]);
@@ -6173,10 +6204,11 @@ function processImportData(rows) {
     '拍摄日期': 'shootDate', '日期': 'shootDate',
     '指定摄影师': 'photographer', '摄影师': 'photographer', '摄影': 'photographer', '指定人员': 'photographer',
     '副机位人员': 'secondPhotographer', '副机位': 'secondPhotographer', '副摄影': 'secondPhotographer',
-    '是否指定': 'personConfirmed', '已指定': 'personConfirmed', '指定': 'personConfirmed',
+    '是否指定': 'personConfirmed', '已指定': 'personConfirmed', '指定': 'personConfirmed', '指定人员': 'personConfirmed',
     '无晨袍': 'noMorningGown',
     '接送': 'pickup', '新人接送': 'pickup',
     '双机': 'dualCamera',
+    '已交付': 'delivered', '交付': 'delivered',
     '总额': 'totalAmount', '总价': 'totalAmount', '总金额': 'totalAmount',
     '定金': 'deposit', '已付定金': 'deposit',
     '剩余尾款': 'balance', '尾款': 'balance',
@@ -6231,6 +6263,7 @@ function processImportData(rows) {
       noMorningGown: colMap.noMorningGown !== undefined ? (String(row[colMap.noMorningGown] || '').trim() === '是' || String(row[colMap.noMorningGown] || '').trim() === 'true') : false,
       pickup: colMap.pickup !== undefined ? (String(row[colMap.pickup] || '').trim() === '是' || String(row[colMap.pickup] || '').trim() === 'true') : false,
       dualCamera: colMap.dualCamera !== undefined ? (String(row[colMap.dualCamera] || '').trim() === '是' || String(row[colMap.dualCamera] || '').trim() === 'true') : false,
+      delivered: colMap.delivered !== undefined ? (String(row[colMap.delivered] || '').trim() === '是' || String(row[colMap.delivered] || '').trim() === 'true') : false,
       deposit: colMap.deposit !== undefined ? parseFloat(row[colMap.deposit]) || 0 : 0,
       totalAmount: colMap.totalAmount !== undefined ? parseFloat(row[colMap.totalAmount]) || 0 : 0,
       arrivalTime: colMap.arrivalTime !== undefined ? String(row[colMap.arrivalTime] || '').trim() : '',
