@@ -3424,6 +3424,8 @@ async function initCloudBase() {
     cloudDB = cloudApp.database();
     cloudSyncEnabled = true;
     console.log('[CloudBase] Initialized successfully');
+    // Pull cloud data first (critical for new browsers), then push local
+    await pullCloudToLocal();
     await syncLocalToCloud();
     startCloudWatchers();
     return true;
@@ -3616,12 +3618,133 @@ async function syncToCloud(collection, data, options) {
   }
 }
 
+// ===== Pull all cloud data to local (for new browsers / cleared cache) =====
+async function pullCloudToLocal() {
+  if (!cloudSyncEnabled || !cloudDB) return false;
+  try {
+    console.log('[CloudBase] Starting pull from cloud...');
+
+    // 1. Pull users
+    var usersCol = cloudDB.collection('users');
+    var usersSnapshot = await usersCol.get();
+    if (usersSnapshot.data && usersSnapshot.data.length > 0) {
+      var localUsers = JSON.parse(localStorage.getItem('ps_users') || '[]');
+      var userMap = {};
+      localUsers.forEach(function(u) { userMap[u.id] = u; });
+      usersSnapshot.data.forEach(function(doc) {
+        if (doc.id) userMap[doc.id] = doc;
+      });
+      var mergedUsers = Object.keys(userMap).map(function(k) { return userMap[k]; });
+      localStorage.setItem('ps_users', JSON.stringify(mergedUsers));
+      console.log('[CloudBase] Pulled ' + usersSnapshot.data.length + ' users');
+    }
+
+    // 2. Pull schedules
+    var schedCol = cloudDB.collection('schedules');
+    var schedSnapshot = await schedCol.get();
+    if (schedSnapshot.data && schedSnapshot.data.length > 0) {
+      var localSchedules = JSON.parse(localStorage.getItem('ps_schedules') || '[]');
+      var schedMap = {};
+      localSchedules.forEach(function(s) { schedMap[s.id] = s; });
+      schedSnapshot.data.forEach(function(doc) {
+        if (doc.id) schedMap[doc.id] = doc;
+      });
+      var mergedSchedules = Object.keys(schedMap).map(function(k) { return schedMap[k]; });
+      localStorage.setItem('ps_schedules', JSON.stringify(mergedSchedules));
+      console.log('[CloudBase] Pulled ' + schedSnapshot.data.length + ' schedules');
+    }
+
+    // 3. Pull settings
+    var settingsCol = cloudDB.collection('settings');
+    var settingsSnapshot = await settingsCol.get();
+    if (settingsSnapshot.data && settingsSnapshot.data.length > 0) {
+      var localSettings = JSON.parse(localStorage.getItem('ps_settings') || '{}');
+      settingsSnapshot.data.forEach(function(doc) {
+        if (doc._masterId) {
+          localSettings[doc._masterId] = Object.assign({}, localSettings[doc._masterId] || {}, doc);
+        }
+      });
+      localStorage.setItem('ps_settings', JSON.stringify(localSettings));
+      console.log('[CloudBase] Pulled settings');
+    }
+
+    // 4. Pull day_settings
+    var daySettingsCol = cloudDB.collection('day_settings');
+    var daySettingsSnapshot = await daySettingsCol.get();
+    if (daySettingsSnapshot.data && daySettingsSnapshot.data.length > 0) {
+      var localDaySettings = JSON.parse(localStorage.getItem('ps_day_settings') || '{}');
+      daySettingsSnapshot.data.forEach(function(doc) {
+        if (doc.date) {
+          localDaySettings[doc.date] = Object.assign({}, localDaySettings[doc.date] || {}, doc);
+        }
+      });
+      localStorage.setItem('ps_day_settings', JSON.stringify(localDaySettings));
+      console.log('[CloudBase] Pulled day_settings');
+    }
+
+    // 5. Pull chat_messages
+    var chatCol = cloudDB.collection('chat_messages');
+    var chatSnapshot = await chatCol.get();
+    if (chatSnapshot.data && chatSnapshot.data.length > 0) {
+      var localChat = JSON.parse(localStorage.getItem('ps_chat_messages') || '[]');
+      var chatMap = {};
+      localChat.forEach(function(m) { if (m.id) chatMap[m.id] = m; });
+      chatSnapshot.data.forEach(function(doc) {
+        if (doc.id) chatMap[doc.id] = doc;
+      });
+      var mergedChat = Object.keys(chatMap).map(function(k) { return chatMap[k]; });
+      localStorage.setItem('ps_chat_messages', JSON.stringify(mergedChat));
+      console.log('[CloudBase] Pulled ' + chatSnapshot.data.length + ' chat_messages');
+    }
+
+    // 6. Pull photographers per master
+    var masterUsers = JSON.parse(localStorage.getItem('ps_users') || '[]').filter(function(u) { return u.role === 'master'; });
+    for (var i = 0; i < masterUsers.length; i++) {
+      var masterId = masterUsers[i].id;
+      var photoCol = cloudDB.collection('photographers');
+      var photoSnapshot = await photoCol.where({ _masterId: masterId }).get();
+      if (photoSnapshot.data && photoSnapshot.data.length > 0) {
+        var photoList = photoSnapshot.data.map(function(doc) {
+          return Array.isArray(doc.data) ? doc.data : (doc.name ? [doc.name] : []);
+        }).reduce(function(a, b) { return a.concat(b); }, []);
+        if (photoList.length > 0) {
+          var localPhoto = JSON.parse(localStorage.getItem('ps_photographers_' + masterId) || '[]');
+          photoList.forEach(function(p) { if (localPhoto.indexOf(p) < 0) localPhoto.push(p); });
+          localStorage.setItem('ps_photographers_' + masterId, JSON.stringify(localPhoto));
+        }
+      }
+
+      // Pull hotels per master
+      var hotelCol = cloudDB.collection('hotels');
+      var hotelSnapshot = await hotelCol.where({ _masterId: masterId }).get();
+      if (hotelSnapshot.data && hotelSnapshot.data.length > 0) {
+        var localHotels = JSON.parse(localStorage.getItem('ps_hotels_' + masterId) || '[]');
+        var hotelMap = {};
+        localHotels.forEach(function(h) { hotelMap[h.id] = h; });
+        hotelSnapshot.data.forEach(function(doc) {
+          if (doc.id) hotelMap[doc.id] = doc;
+        });
+        localStorage.setItem('ps_hotels_' + masterId, JSON.stringify(Object.keys(hotelMap).map(function(k) { return hotelMap[k]; })));
+      }
+    }
+
+    console.log('[CloudBase] Pull complete');
+    return true;
+  } catch (err) {
+    console.warn('[CloudBase] Pull failed:', err.message);
+    return false;
+  }
+}
+
 let isOnline = navigator.onLine;
 window.addEventListener('online', function() {
   isOnline = true;
   if (cloudSyncEnabled) {
     showToast('网络已恢复，正在同步云端数据', 'info');
-    syncLocalToCloud();
+    pullCloudToLocal().then(function() {
+      syncLocalToCloud();
+      renderAll();
+    });
   }
 });
 window.addEventListener('offline', function() {
@@ -4286,6 +4409,11 @@ function showApp() {
   }
 
   renderAll();
+  // After initial render, pull cloud data and re-render
+  pullCloudToLocal().then(function() {
+    renderAll();
+    showToast('云端数据同步完成', 'success');
+  }).catch(function() {});
   // Initialize chat long-press and voice long-press interactions
   initChatInteractions();
   // Initialize FAB visibility based on role (default tab is schedule)
