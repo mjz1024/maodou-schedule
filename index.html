@@ -3201,27 +3201,27 @@ select.form-input {
           </select>
         </div>
       </div>
-      <div class="form-row" style="flex-wrap:wrap;gap:10px;">
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
-          <input type="checkbox" id="fPersonConfirmed" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;">指定人员</label>
+      <div class="form-row" style="flex-wrap:wrap;gap:6px;align-items:center;">
+        <label style="font-size:12px;color:var(--text-muted);margin-right:4px;white-space:nowrap;">选项：</label>
+        <div class="form-group" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;padding-top:0;font-size:12px;">
+          <input type="checkbox" id="fPersonConfirmed" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">指定人员</label>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
-          <input type="checkbox" id="fNoMorningGown" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fNoMorningGown" style="cursor:pointer;font-weight:400;margin:0;">无晨袍</label>
+        <div class="form-group" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;padding-top:0;font-size:12px;">
+          <input type="checkbox" id="fNoMorningGown" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+          <label for="fNoMorningGown" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">无晨袍</label>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
-          <input type="checkbox" id="fPickup" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fPickup" style="cursor:pointer;font-weight:400;margin:0;">接送</label>
+        <div class="form-group" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;padding-top:0;font-size:12px;">
+          <input type="checkbox" id="fPickup" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+          <label for="fPickup" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">接送</label>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
-          <input type="checkbox" id="fDualCamera" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fDualCamera" style="cursor:pointer;font-weight:400;margin:0;">双机</label>
+        <div class="form-group" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;padding-top:0;font-size:12px;">
+          <input type="checkbox" id="fDualCamera" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+          <label for="fDualCamera" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">双机</label>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
-          <input type="checkbox" id="fDelivered" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fDelivered" style="cursor:pointer;font-weight:400;margin:0;">已交付</label>
-        </div>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <button type="button" class="btn" id="btnDelivered" data-delivered="false" onclick="toggleDelivered()" style="width:100%;padding:10px 16px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);font-size:14px;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;">未交付</button>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -3258,10 +3258,15 @@ select.form-input {
         <textarea class="form-input" id="fRemarks" placeholder="拍摄需求、场地、特殊要求等"></textarea>
       </div>
     </div>
-    <div class="modal-footer">
+  <div class="modal-footer">
+    <div class="form-group" style="width:100%;margin-bottom:8px;">
+      <button type="button" class="btn" id="btnDelivered" data-delivered="false" onclick="toggleDelivered()" style="width:100%;padding:10px 16px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);font-size:14px;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;">未交付</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;width:100%;">
       <button class="btn btn-secondary" onclick="closeModal('scheduleModal')">取消</button>
       <button class="btn btn-primary" onclick="saveSchedule()">保存</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -5337,6 +5342,7 @@ function renderDayDetail() {
           ${isMaster ? `
           <div class="card-actions">
             <button class="btn btn-secondary btn-sm" onclick="openScheduleModal('${s.id}')">编辑</button>
+            <button class="btn btn-sm" onclick="toggleDeliveredCard('${s.id}')" style="background:${s.delivered ? 'rgba(107,114,128,0.2)' : 'var(--bg-secondary)'};color:${s.delivered ? 'var(--text-muted)' : 'var(--text)'};border:1px solid var(--border);font-size:12px;padding:4px 10px;border-radius:6px;">${s.delivered ? '已交付' : '标记交付'}</button>
             <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">删除</button>
           </div>` : ''}
         </div>
@@ -5365,6 +5371,7 @@ function renderDayDetail() {
           <div class="table-actions">
             ${isMaster ? `
               <button class="table-action-btn" onclick="openScheduleModal('${s.id}')">编辑</button>
+              <button class="table-action-btn" onclick="toggleDeliveredCard('${s.id}')" style="color:${s.delivered ? 'var(--text-muted)' : 'var(--primary)'};background:transparent;border:1px solid ${s.delivered ? 'var(--border)' : 'var(--primary)'};">${s.delivered ? '已交付' : '标记交付'}</button>
               <button class="table-action-btn danger" onclick="deleteSchedule('${s.id}')">删除</button>
             ` : '<span style="color:var(--text-muted);font-size:12px;">只读</span>'}
           </div>
@@ -5543,7 +5550,15 @@ function openScheduleModal(id) {
     document.getElementById('fNoMorningGown').checked = !!s.noMorningGown;
     document.getElementById('fPickup').checked = !!s.pickup;
     document.getElementById('fDualCamera').checked = !!s.dualCamera;
-    document.getElementById('fDelivered').checked = !!s.delivered;
+    const btnDelivered = document.getElementById('btnDelivered');
+    if (btnDelivered) {
+      var isDel = !!s.delivered;
+      btnDelivered.setAttribute('data-delivered', isDel ? 'true' : 'false');
+      btnDelivered.textContent = isDel ? '已交付' : '未交付';
+      btnDelivered.style.background = isDel ? 'rgba(107,114,128,0.15)' : 'var(--bg-secondary)';
+      btnDelivered.style.color = isDel ? 'var(--text-muted)' : 'var(--text)';
+      btnDelivered.style.borderColor = 'var(--border)';
+    }
   } else {
     title.textContent = '新建档期';
     document.getElementById('fClientName').value = '';
@@ -5555,7 +5570,6 @@ function openScheduleModal(id) {
     document.getElementById('fNoMorningGown').checked = false;
     document.getElementById('fPickup').checked = false;
     document.getElementById('fDualCamera').checked = false;
-    document.getElementById('fDelivered').checked = false;
     document.getElementById('fOrderDate').value = formatDateStr(new Date());
     if (selectedDate) document.getElementById('fShootDate').value = selectedDate;
     else document.getElementById('fShootDate').value = formatDateStr(new Date());
@@ -5564,8 +5578,48 @@ function openScheduleModal(id) {
     document.getElementById('fDeposit').value = '';
     document.getElementById('fBalance').value = '';
     document.getElementById('fRemarks').value = '';
+    const btnDelivered = document.getElementById('btnDelivered');
+    if (btnDelivered) {
+      btnDelivered.setAttribute('data-delivered', 'false');
+      btnDelivered.textContent = '未交付';
+      btnDelivered.style.background = 'var(--bg-secondary)';
+      btnDelivered.style.color = 'var(--text)';
+      btnDelivered.style.borderColor = 'var(--border)';
+    }
   }
   modal.classList.add('active');
+}
+
+function toggleDelivered() {
+  var btn = document.getElementById('btnDelivered');
+  if (!btn) return;
+  var isDel = btn.getAttribute('data-delivered') === 'true';
+  var newVal = !isDel;
+  btn.setAttribute('data-delivered', newVal ? 'true' : 'false');
+  btn.textContent = newVal ? '已交付' : '未交付';
+  if (newVal) {
+    btn.style.background = 'rgba(107,114,128,0.15)';
+    btn.style.color = 'var(--text-muted)';
+  } else {
+    btn.style.background = 'var(--bg-secondary)';
+    btn.style.color = 'var(--text)';
+  }
+  btn.style.borderColor = 'var(--border)';
+}
+
+function toggleDeliveredCard(scheduleId) {
+  var allScheds = DB.getAllSchedules();
+  var idx = allScheds.findIndex(function(s) { return s.id === scheduleId; });
+  if (idx < 0) return;
+  var s = allScheds[idx];
+  var newVal = !s.delivered;
+  allScheds[idx].delivered = newVal;
+  DB.setSchedules(allScheds);
+  DB.addOperationLog('update', (newVal ? '标记已交付' : '取消已交付') + '：' + s.clientName + '（' + s.shootDate + '）');
+  showToast(newVal ? '已标记为交付' : '已取消交付标记', 'success');
+  renderSchedules();
+  renderCalendar();
+  syncLocalToCloud();
 }
 
 function onShootDateChange() {
@@ -5629,7 +5683,7 @@ function saveSchedule() {
     noMorningGown: document.getElementById('fNoMorningGown').checked,
     pickup: document.getElementById('fPickup').checked,
     dualCamera: document.getElementById('fDualCamera').checked,
-    delivered: document.getElementById('fDelivered').checked,
+    delivered: document.getElementById('btnDelivered') && document.getElementById('btnDelivered').getAttribute('data-delivered') === 'true',
     orderDate: document.getElementById('fOrderDate').value,
     shootDate: shootDate,
     photographer: document.getElementById('fPhotographer').value,
