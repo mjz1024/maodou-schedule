@@ -3201,8 +3201,7 @@ select.form-input {
           </select>
         </div>
       </div>
-      <div class="form-row" style="flex-wrap:wrap;gap:6px;align-items:center;">
-        <label style="font-size:12px;color:var(--text-muted);margin-right:4px;white-space:nowrap;">选项：</label>
+      <div class="form-row" style="justify-content:center;gap:16px;align-items:center;">
         <div class="form-group" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;padding-top:0;font-size:12px;">
           <input type="checkbox" id="fPersonConfirmed" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
           <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">指定人员</label>
@@ -3219,9 +3218,6 @@ select.form-input {
           <input type="checkbox" id="fDualCamera" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
           <label for="fDualCamera" style="cursor:pointer;font-weight:400;margin:0;white-space:nowrap;font-size:inherit;">双机</label>
         </div>
-      </div>
-      <div class="form-group" style="margin-top:8px;">
-        <button type="button" class="btn" id="btnDelivered" data-delivered="false" onclick="toggleDelivered()" style="width:100%;padding:10px 16px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);font-size:14px;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;">未交付</button>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -3259,9 +3255,6 @@ select.form-input {
       </div>
     </div>
   <div class="modal-footer">
-    <div class="form-group" style="width:100%;margin-bottom:8px;">
-      <button type="button" class="btn" id="btnDelivered" data-delivered="false" onclick="toggleDelivered()" style="width:100%;padding:10px 16px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);font-size:14px;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;">未交付</button>
-    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;width:100%;">
       <button class="btn btn-secondary" onclick="closeModal('scheduleModal')">取消</button>
       <button class="btn btn-primary" onclick="saveSchedule()">保存</button>
@@ -5308,22 +5301,38 @@ function renderDayDetail() {
   });
 
   // Timeline cards
-  timelineWrap.innerHTML = schedules.map((s, i) => {
+  // Sort by arrival time, then split delivered to bottom
+  schedules.sort((a, b) => {
+    const ta = a.arrivalTime || '00:00';
+    const tb = b.arrivalTime || '00:00';
+    return ta.localeCompare(tb);
+  });
+  const active = schedules.filter(s => !s.delivered);
+  const delivered = schedules.filter(s => s.delivered);
+
+  const separatorHTML = delivered.length > 0 && active.length > 0 ? `
+    <div class="timeline-item" style="justify-content:center;padding:12px 0;">
+      <div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div>
+    </div>` : '';
+
+  const renderCard = (s, i, isDeliveredSection) => {
     const balance = calcBalanceVal(s.deposit, s.totalAmount);
     const balanceClass = balance <= 0 ? 'balance zero' : 'balance';
     const statusClass = balance <= 0 ? 'full-paid' : (parseFloat(s.deposit) > 0 ? 'paid' : 'unpaid');
     const statusText = balance <= 0 ? '已付清' : (parseFloat(s.deposit) > 0 ? '已付定金' : '未付款');
+    const deliveredStamp = s.delivered && s.deliveredAt ? `<span style="font-size:10px;color:var(--text-muted);font-weight:400;background:rgba(107,114,128,0.12);padding:1px 6px;border-radius:4px;margin-left:4px;">交付 ${formatDeliveredStamp(s.deliveredAt)}</span>` : '';
+    const dblClick = s.delivered ? ` ondblclick="restoreDeliveredCard('${s.id}')"` : '';
     return `
       <div class="timeline-item">
-        <div class="timeline-dot ${i === 0 ? 'active' : ''}">
+        <div class="timeline-dot ${i === 0 && !isDeliveredSection ? 'active' : ''}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
-        <div class="timeline-card${s.delivered ? ' delivered' : ''}">
+        <div class="timeline-card${s.delivered ? ' delivered' : ''}"${dblClick}>
           <div class="card-top">
             <div>
-              <div class="client-name">${escHtml(s.clientName)}${s.delivered ? ' <span style="font-size:11px;color:var(--text-muted);font-weight:400;background:rgba(107,114,128,0.15);padding:1px 6px;border-radius:4px;margin-left:4px;">已交付</span>' : ''}</div>
+              <div class="client-name">${escHtml(s.clientName)}${s.delivered ? ' <span style="font-size:11px;color:var(--text-muted);font-weight:400;background:rgba(107,114,128,0.15);padding:1px 6px;border-radius:4px;margin-left:4px;">已交付</span>' : ''}${deliveredStamp}</div>
               ${s.photographer ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${escHtml(s.photographer)}${s.personConfirmed ? ' <span style="color:var(--success);font-weight:600;">✓</span>' : ''}</div>` : ''}
               ${[s.hotel, s.hall, s.planner].filter(Boolean).length > 0 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml([s.hotel, s.hall, s.planner].filter(Boolean).join(' · '))}</div>` : ''}
             </div>
@@ -5342,19 +5351,27 @@ function renderDayDetail() {
           ${isMaster ? `
           <div class="card-actions">
             <button class="btn btn-secondary btn-sm" onclick="openScheduleModal('${s.id}')">编辑</button>
-            <button class="btn btn-sm" onclick="toggleDeliveredCard('${s.id}')" style="background:${s.delivered ? 'rgba(107,114,128,0.2)' : 'var(--bg-secondary)'};color:${s.delivered ? 'var(--text-muted)' : 'var(--text)'};border:1px solid var(--border);font-size:12px;padding:4px 10px;border-radius:6px;">${s.delivered ? '已交付' : '标记交付'}</button>
+            ${!s.delivered ? `<button class="btn btn-sm" onclick="toggleDeliveredCard('${s.id}')" style="background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);font-size:12px;padding:4px 10px;border-radius:6px;">标记交付</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">删除</button>
           </div>` : ''}
         </div>
       </div>`;
-  }).join('');
+  };
+
+  timelineWrap.innerHTML = [
+    ...active.map((s, i) => renderCard(s, i, false)),
+    separatorHTML,
+    ...delivered.map((s, i) => renderCard(s, i, true))
+  ].join('');
 
   // Desktop table
-  tbody.innerHTML = schedules.map(s => {
-    const balance = calcBalanceVal(s.deposit, s.totalAmount);
-    const trStyle = s.delivered ? ' style="background:#f0f0f0;opacity:0.55;filter:grayscale(0.8);"' : '';
-    return `
-      <tr${trStyle}>
+  const separatorRow = delivered.length > 0 && active.length > 0 ? `<tr><td colspan="13" style="height:2px;background:linear-gradient(90deg,transparent,#ddd,transparent);padding:0;"></td></tr>` : '';
+
+  tbody.innerHTML = [
+    ...active.map(s => {
+      const balance = calcBalanceVal(s.deposit, s.totalAmount);
+      return `
+      <tr>
         <td>${escHtml(s.shootDate || selectedDate || '-')}</td>
         <td style="font-weight:600;">${escHtml(s.clientName)}</td>
         <td>${escHtml(s.hotel || '-')}</td>
@@ -5366,18 +5383,47 @@ function renderDayDetail() {
         <td style="color:${balance <= 0 ? 'var(--success)' : 'var(--warning)'};font-weight:600;">${s.totalAmount != null ? formatMoney(balance) : '-'}</td>
         <td>${escHtml(s.arrivalTime || '-')}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.remarks || '')}">${escHtml(s.remarks || '-')}</td>
-        <td>${s.delivered ? '<span style="color:var(--text-muted);font-size:11px;background:rgba(107,114,128,0.1);padding:2px 6px;border-radius:4px;">已交付</span>' : '-'}</td>
+        <td>-</td>
         <td>
           <div class="table-actions">
             ${isMaster ? `
               <button class="table-action-btn" onclick="openScheduleModal('${s.id}')">编辑</button>
-              <button class="table-action-btn" onclick="toggleDeliveredCard('${s.id}')" style="color:${s.delivered ? 'var(--text-muted)' : 'var(--primary)'};background:transparent;border:1px solid ${s.delivered ? 'var(--border)' : 'var(--primary)'};">${s.delivered ? '已交付' : '标记交付'}</button>
+              <button class="table-action-btn" onclick="toggleDeliveredCard('${s.id}')" style="color:var(--primary);background:transparent;border:1px solid var(--primary);">标记交付</button>
               <button class="table-action-btn danger" onclick="deleteSchedule('${s.id}')">删除</button>
             ` : '<span style="color:var(--text-muted);font-size:12px;">只读</span>'}
           </div>
         </td>
       </tr>`;
-  }).join('');
+    }),
+    separatorRow,
+    ...delivered.map(s => {
+      const balance = calcBalanceVal(s.deposit, s.totalAmount);
+      const deliveredLabel = s.deliveredAt ? `<span style="color:var(--text-muted);font-size:11px;background:rgba(107,114,128,0.1);padding:2px 6px;border-radius:4px;" title="交付于 ${formatDeliveredStamp(s.deliveredAt)}">已交付 ${formatDeliveredStamp(s.deliveredAt)}</span>` : '<span style="color:var(--text-muted);font-size:11px;background:rgba(107,114,128,0.1);padding:2px 6px;border-radius:4px;">已交付</span>';
+      return `
+      <tr style="background:#f0f0f0;opacity:0.55;filter:grayscale(0.8);" ondblclick="restoreDeliveredCard('${s.id}')">
+        <td>${escHtml(s.shootDate || selectedDate || '-')}</td>
+        <td style="font-weight:600;">${escHtml(s.clientName)}</td>
+        <td>${escHtml(s.hotel || '-')}</td>
+        <td>${escHtml(s.hall || '-')}</td>
+        <td>${escHtml(s.planner || '-')}</td>
+        <td>${escHtml(s.photographer || '-')}${s.personConfirmed ? ' <span style="color:var(--success);font-weight:600;">✓</span>' : ''}</td>
+        <td>${s.totalAmount != null ? formatMoney(s.totalAmount) : '-'}</td>
+        <td>${s.deposit != null ? formatMoney(s.deposit) : '-'}</td>
+        <td style="color:${balance <= 0 ? 'var(--success)' : 'var(--warning)'};font-weight:600;">${s.totalAmount != null ? formatMoney(balance) : '-'}</td>
+        <td>${escHtml(s.arrivalTime || '-')}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.remarks || '')}">${escHtml(s.remarks || '-')}</td>
+        <td>${deliveredLabel}</td>
+        <td>
+          <div class="table-actions">
+            ${isMaster ? `
+              <button class="table-action-btn" onclick="openScheduleModal('${s.id}')">编辑</button>
+              <button class="table-action-btn danger" onclick="deleteSchedule('${s.id}')">删除</button>
+            ` : '<span style="color:var(--text-muted);font-size:12px;">只读</span>'}
+          </div>
+        </td>
+      </tr>`;
+    })
+  ].join('');
 }
 
 // ===== Year/Month Picker =====
@@ -5550,15 +5596,6 @@ function openScheduleModal(id) {
     document.getElementById('fNoMorningGown').checked = !!s.noMorningGown;
     document.getElementById('fPickup').checked = !!s.pickup;
     document.getElementById('fDualCamera').checked = !!s.dualCamera;
-    const btnDelivered = document.getElementById('btnDelivered');
-    if (btnDelivered) {
-      var isDel = !!s.delivered;
-      btnDelivered.setAttribute('data-delivered', isDel ? 'true' : 'false');
-      btnDelivered.textContent = isDel ? '已交付' : '未交付';
-      btnDelivered.style.background = isDel ? 'rgba(107,114,128,0.15)' : 'var(--bg-secondary)';
-      btnDelivered.style.color = isDel ? 'var(--text-muted)' : 'var(--text)';
-      btnDelivered.style.borderColor = 'var(--border)';
-    }
   } else {
     title.textContent = '新建档期';
     document.getElementById('fClientName').value = '';
@@ -5578,33 +5615,8 @@ function openScheduleModal(id) {
     document.getElementById('fDeposit').value = '';
     document.getElementById('fBalance').value = '';
     document.getElementById('fRemarks').value = '';
-    const btnDelivered = document.getElementById('btnDelivered');
-    if (btnDelivered) {
-      btnDelivered.setAttribute('data-delivered', 'false');
-      btnDelivered.textContent = '未交付';
-      btnDelivered.style.background = 'var(--bg-secondary)';
-      btnDelivered.style.color = 'var(--text)';
-      btnDelivered.style.borderColor = 'var(--border)';
-    }
   }
   modal.classList.add('active');
-}
-
-function toggleDelivered() {
-  var btn = document.getElementById('btnDelivered');
-  if (!btn) return;
-  var isDel = btn.getAttribute('data-delivered') === 'true';
-  var newVal = !isDel;
-  btn.setAttribute('data-delivered', newVal ? 'true' : 'false');
-  btn.textContent = newVal ? '已交付' : '未交付';
-  if (newVal) {
-    btn.style.background = 'rgba(107,114,128,0.15)';
-    btn.style.color = 'var(--text-muted)';
-  } else {
-    btn.style.background = 'var(--bg-secondary)';
-    btn.style.color = 'var(--text)';
-  }
-  btn.style.borderColor = 'var(--border)';
 }
 
 function toggleDeliveredCard(scheduleId) {
@@ -5613,13 +5625,52 @@ function toggleDeliveredCard(scheduleId) {
   if (idx < 0) return;
   var s = allScheds[idx];
   var newVal = !s.delivered;
-  allScheds[idx].delivered = newVal;
-  DB.setSchedules(allScheds);
-  DB.addOperationLog('update', (newVal ? '标记已交付' : '取消已交付') + '：' + s.clientName + '（' + s.shootDate + '）');
-  showToast(newVal ? '已标记为交付' : '已取消交付标记', 'success');
+  if (newVal) {
+    // Mark as delivered - show confirmation
+    if (!confirm('确认标记「' + s.clientName + '」为已交付吗？')) return;
+    allScheds[idx].delivered = true;
+    allScheds[idx].deliveredAt = new Date().toISOString();
+    DB.setSchedules(allScheds);
+    DB.addOperationLog('update', '标记已交付：' + s.clientName + '（' + s.shootDate + '）');
+    showToast('已标记为交付', 'success');
+  } else {
+    // Unmark - show confirmation
+    if (!confirm('确认取消「' + s.clientName + '」的已交付标记吗？')) return;
+    allScheds[idx].delivered = false;
+    delete allScheds[idx].deliveredAt;
+    DB.setSchedules(allScheds);
+    DB.addOperationLog('update', '取消已交付：' + s.clientName + '（' + s.shootDate + '）');
+    showToast('已取消交付标记', 'success');
+  }
   renderSchedules();
   renderCalendar();
   syncLocalToCloud();
+}
+
+function restoreDeliveredCard(scheduleId) {
+  var allScheds = DB.getAllSchedules();
+  var idx = allScheds.findIndex(function(s) { return s.id === scheduleId; });
+  if (idx < 0) return;
+  var s = allScheds[idx];
+  if (!s.delivered) return;
+  if (!confirm('确认恢复「' + s.clientName + '」到正常状态吗？')) return;
+  allScheds[idx].delivered = false;
+  delete allScheds[idx].deliveredAt;
+  DB.setSchedules(allScheds);
+  DB.addOperationLog('update', '恢复已交付订单：' + s.clientName + '（' + s.shootDate + '）');
+  showToast('已恢复至正常状态', 'success');
+  renderSchedules();
+  renderCalendar();
+  syncLocalToCloud();
+}
+
+function formatDeliveredStamp(isoDate) {
+  if (!isoDate) return '';
+  var d = new Date(isoDate);
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
 }
 
 function onShootDateChange() {
@@ -5683,7 +5734,6 @@ function saveSchedule() {
     noMorningGown: document.getElementById('fNoMorningGown').checked,
     pickup: document.getElementById('fPickup').checked,
     dualCamera: document.getElementById('fDualCamera').checked,
-    delivered: document.getElementById('btnDelivered') && document.getElementById('btnDelivered').getAttribute('data-delivered') === 'true',
     orderDate: document.getElementById('fOrderDate').value,
     shootDate: shootDate,
     photographer: document.getElementById('fPhotographer').value,
@@ -5712,6 +5762,8 @@ function saveSchedule() {
         createdAt: allSchedules[idx].createdAt,
         ownerId: allSchedules[idx].ownerId,
         createdBy: allSchedules[idx].createdBy,
+        delivered: allSchedules[idx].delivered,
+        deliveredAt: allSchedules[idx].deliveredAt,
       };
       allSchedules[idx] = { ...allSchedules[idx], ...data, ...preserved };
       DB.setSchedules(allSchedules);
