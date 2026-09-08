@@ -3173,13 +3173,29 @@ select.form-input {
             <option value="">请选择</option>
           </select>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:100px;padding-top:24px;">
-          <input type="checkbox" id="fPersonConfirmed" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;">已指定</label>
+        <div class="form-group" style="flex:1;">
+          <label>副机位人员</label>
+          <select class="form-input" id="fSecondPhotographer">
+            <option value="">请选择</option>
+          </select>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:130px;padding-top:24px;">
+      </div>
+      <div class="form-row" style="flex-wrap:wrap;gap:10px;">
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
+          <input type="checkbox" id="fPersonConfirmed" style="width:18px;height:18px;cursor:pointer;">
+          <label for="fPersonConfirmed" style="cursor:pointer;font-weight:400;margin:0;">指定</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
           <input type="checkbox" id="fNoMorningGown" style="width:18px;height:18px;cursor:pointer;">
-          <label for="fNoMorningGown" style="cursor:pointer;font-weight:400;margin:0;">新人接送(无晨袍)</label>
+          <label for="fNoMorningGown" style="cursor:pointer;font-weight:400;margin:0;">无晨袍</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
+          <input type="checkbox" id="fPickup" style="width:18px;height:18px;cursor:pointer;">
+          <label for="fPickup" style="cursor:pointer;font-weight:400;margin:0;">接送</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;padding-top:24px;">
+          <input type="checkbox" id="fDualCamera" style="width:18px;height:18px;cursor:pointer;">
+          <label for="fDualCamera" style="cursor:pointer;font-weight:400;margin:0;">双机</label>
         </div>
       </div>
       <div class="form-row">
@@ -4510,7 +4526,7 @@ function saveNickname() {
 
 // ===== Calendar Rendering =====
 function renderAll() {
-  renderPhotographerOptions();
+  renderPhotographerOptions(null, null);
   renderHotelOptions();
   renderCalendar();
   renderDayDetail();
@@ -4542,6 +4558,12 @@ function renderPhotographerOptions(formDate, excludeScheduleId) {
       return '<option value="' + escHtml(p) + '"' + attrs + '>' + label + '</option>';
     }).join('');
     formSel.innerHTML = '<option value="">请选择</option>' + options;
+
+    // Also populate the second photographer dropdown with the same options
+    var secondSel = document.getElementById('fSecondPhotographer');
+    if (secondSel) {
+      secondSel.innerHTML = '<option value="">请选择</option>' + options;
+    }
   }
 }
 
@@ -5302,6 +5324,7 @@ function openScheduleModal(id) {
       if (s.planner) document.getElementById('fPlanner').value = s.planner;
     }
     document.getElementById('fPhotographer').value = s.photographer || '';
+    document.getElementById('fSecondPhotographer').value = s.secondPhotographer || '';
     document.getElementById('fPersonConfirmed').checked = !!s.personConfirmed;
     document.getElementById('fOrderDate').value = s.orderDate || '';
     document.getElementById('fShootDate').value = s.shootDate || '';
@@ -5311,14 +5334,19 @@ function openScheduleModal(id) {
     document.getElementById('fBalance').value = calcBalanceVal(s.deposit, s.totalAmount);
     document.getElementById('fRemarks').value = s.remarks || '';
     document.getElementById('fNoMorningGown').checked = !!s.noMorningGown;
+    document.getElementById('fPickup').checked = !!s.pickup;
+    document.getElementById('fDualCamera').checked = !!s.dualCamera;
   } else {
     title.textContent = '新建档期';
     document.getElementById('fClientName').value = '';
     document.getElementById('fHotel').value = '';
     onHotelChange();
     document.getElementById('fPhotographer').value = '';
+    document.getElementById('fSecondPhotographer').value = '';
     document.getElementById('fPersonConfirmed').checked = false;
     document.getElementById('fNoMorningGown').checked = false;
+    document.getElementById('fPickup').checked = false;
+    document.getElementById('fDualCamera').checked = false;
     document.getElementById('fOrderDate').value = formatDateStr(new Date());
     if (selectedDate) document.getElementById('fShootDate').value = selectedDate;
     else document.getElementById('fShootDate').value = formatDateStr(new Date());
@@ -5390,9 +5418,12 @@ function saveSchedule() {
     planner: document.getElementById('fPlanner').value || '',
     personConfirmed: document.getElementById('fPersonConfirmed').checked,
     noMorningGown: document.getElementById('fNoMorningGown').checked,
+    pickup: document.getElementById('fPickup').checked,
+    dualCamera: document.getElementById('fDualCamera').checked,
     orderDate: document.getElementById('fOrderDate').value,
     shootDate: shootDate,
     photographer: document.getElementById('fPhotographer').value,
+    secondPhotographer: document.getElementById('fSecondPhotographer').value,
     totalAmount: parseFloat(document.getElementById('fTotalAmount').value) || 0,
     deposit: parseFloat(document.getElementById('fDeposit').value) || 0,
     balance: calcBalanceVal(
@@ -5899,11 +5930,12 @@ function exportExcel(all) {
   }
   if (schedules.length === 0) return showToast('暂无数据可导出', 'error');
 
-  const headers = ['客户', '合作伙伴', '厅名', '策划师', '下单日期', '拍摄日期', '指定摄影师', '是否指定', '新人接送(无晨袍)', '总额', '定金', '剩余尾款', '到场时间', '备注'];
+  const headers = ['客户', '合作伙伴', '厅名', '策划师', '下单日期', '拍摄日期', '指定人员', '副机位人员', '指定', '无晨袍', '接送', '双机', '总额', '定金', '剩余尾款', '到场时间', '备注'];
   const rows = schedules.map(s => [
     s.clientName || '', s.hotel || '', s.hall || '', s.planner || '',
-    s.orderDate || '', s.shootDate || '', s.photographer || '', s.personConfirmed ? '是' : '否',
-    s.noMorningGown ? '是' : '否',
+    s.orderDate || '', s.shootDate || '', s.photographer || '', s.secondPhotographer || '',
+    s.personConfirmed ? '是' : '否', s.noMorningGown ? '是' : '否',
+    s.pickup ? '是' : '否', s.dualCamera ? '是' : '否',
     s.totalAmount || 0, s.deposit || 0, calcBalanceVal(s.deposit, s.totalAmount),
     s.arrivalTime || '', s.remarks || '',
   ]);
@@ -5959,9 +5991,12 @@ function processImportData(rows) {
     '策划师': 'planner', '婚庆策划': 'planner',
     '下单日期': 'orderDate', '订单日期': 'orderDate',
     '拍摄日期': 'shootDate', '日期': 'shootDate',
-    '指定摄影师': 'photographer', '摄影师': 'photographer', '摄影': 'photographer',
-    '是否指定': 'personConfirmed', '已指定': 'personConfirmed',
-    '新人接送(无晨袍)': 'noMorningGown', '新人接送': 'noMorningGown', '无晨袍': 'noMorningGown',
+    '指定摄影师': 'photographer', '摄影师': 'photographer', '摄影': 'photographer', '指定人员': 'photographer',
+    '副机位人员': 'secondPhotographer', '副机位': 'secondPhotographer', '副摄影': 'secondPhotographer',
+    '是否指定': 'personConfirmed', '已指定': 'personConfirmed', '指定': 'personConfirmed',
+    '无晨袍': 'noMorningGown',
+    '接送': 'pickup', '新人接送': 'pickup',
+    '双机': 'dualCamera',
     '总额': 'totalAmount', '总价': 'totalAmount', '总金额': 'totalAmount',
     '定金': 'deposit', '已付定金': 'deposit',
     '剩余尾款': 'balance', '尾款': 'balance',
@@ -6011,8 +6046,11 @@ function processImportData(rows) {
       orderDate: colMap.orderDate !== undefined ? String(row[colMap.orderDate] || '').trim() : '',
       shootDate: shootDate,
       photographer: colMap.photographer !== undefined ? String(row[colMap.photographer] || '').trim() : '',
+      secondPhotographer: colMap.secondPhotographer !== undefined ? String(row[colMap.secondPhotographer] || '').trim() : '',
       personConfirmed: colMap.personConfirmed !== undefined ? (String(row[colMap.personConfirmed] || '').trim() === '是' || String(row[colMap.personConfirmed] || '').trim() === 'true') : false,
       noMorningGown: colMap.noMorningGown !== undefined ? (String(row[colMap.noMorningGown] || '').trim() === '是' || String(row[colMap.noMorningGown] || '').trim() === 'true') : false,
+      pickup: colMap.pickup !== undefined ? (String(row[colMap.pickup] || '').trim() === '是' || String(row[colMap.pickup] || '').trim() === 'true') : false,
+      dualCamera: colMap.dualCamera !== undefined ? (String(row[colMap.dualCamera] || '').trim() === '是' || String(row[colMap.dualCamera] || '').trim() === 'true') : false,
       deposit: colMap.deposit !== undefined ? parseFloat(row[colMap.deposit]) || 0 : 0,
       totalAmount: colMap.totalAmount !== undefined ? parseFloat(row[colMap.totalAmount]) || 0 : 0,
       arrivalTime: colMap.arrivalTime !== undefined ? String(row[colMap.arrivalTime] || '').trim() : '',
@@ -6024,7 +6062,7 @@ function processImportData(rows) {
     if (existing) {
       let hasDiff = false;
       const diffs = [];
-      ['orderDate', 'photographer', 'deposit', 'totalAmount', 'arrivalTime', 'remarks'].forEach(f => {
+      ['orderDate', 'photographer', 'secondPhotographer', 'deposit', 'totalAmount', 'arrivalTime', 'remarks'].forEach(f => {
         if (entry[f] && entry[f] !== existing[f] && String(entry[f]) !== String(existing[f])) {
           hasDiff = true;
           diffs.push(f);
