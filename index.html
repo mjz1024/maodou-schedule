@@ -4035,7 +4035,7 @@ function schedCardHTML(s, upcoming){
   if(s.noMorningGown) flags.push('无晨袍');
   if(s.personConfirmed) flags.push('已指定');
   const bal=(s.totalAmount||0)-(s.deposit||0);
-  const note=s.note||s.remarks||'';
+  const note=s.note||'';
   const canEdit=isMasterLike();
   const dateHtml=upcoming[s.shootDate]&&!s.delivered?'<span class="upcoming">'+(s.shootDate?esc(s.shootDate).slice(5):'')+'</span>':(s.shootDate?esc(s.shootDate).slice(5):'未定');
   let html='<div class="sched-card'+(s.delivered?' delivered':'')+'" data-id="'+esc(s.id)+'">';
@@ -4138,7 +4138,7 @@ function openScheduleModal(id){
   $('fGroomArrival').value=s?s.groomArrival||'':'';
   $('fTotal').value=s?(s.totalAmount||''):'';
   $('fDeposit').value=s?(s.deposit||''):'';
-  $('fNote').value=s?(s.note||s.remarks||''):'';
+  $('fNote').value=s?(s.note||''):'';
   $('fPickup').checked=s?!!s.pickup:false;
   $('fDual').checked=s?!!s.dualCamera:false;
   $('fNoGown').checked=s?!!s.noMorningGown:false;
@@ -4483,7 +4483,7 @@ function openDayModal(dateStr){
         (s.groomArrival?'<div class="sched-date">新郎 '+esc(s.groomArrival)+'</div>':'')+'</div>';
       if(s.hotel||s.hall||s.planner) html+='<div class="sched-meta"><span class="m">'+esc(s.hotel||'')+'</span><span class="m">'+esc(s.hall||'')+'</span><span class="m">策划：'+esc(s.planner||'')+'</span></div>';
       html+='<div class="sched-money"><span class="amt">总额 ¥'+(s.totalAmount||0)+'</span><span class="dep">定金 ¥'+(s.deposit||0)+'</span><span class="bal">尾款 ¥'+bal+'</span></div>';
-      if(s.note||s.remarks) html+='<div class="sched-note">'+esc(s.note||s.remarks)+'</div>';
+      if(s.note) html+='<div class="sched-note">'+esc(s.note)+'</div>';
       html+='<div class="sched-foot"><div class="sched-tags">'+(s.delivered?'<span class="delivered-stamp">已交付</span>':'')+'</div><div class="sched-actions">'+(isMasterLike()?'<button class="btn btn-sm btn-ghost d-edit">编辑</button>':'')+'</div></div></div>';
     });
   }else{
@@ -5912,7 +5912,7 @@ function exportExcel(scope){
       s.orderDate||'', s.shootDate||'', s.arrivalTime||'', s.totalAmount||0, s.deposit||0,
       ((s.totalAmount||0)-(s.deposit||0)).toFixed(2),
       s.pickup?'是':'', s.dualCamera?'是':'', s.noMorningGown?'是':'', s.personConfirmed?'是':'',
-      s.note||s.remarks||'', s.delivered?'已交付':'待拍摄'
+      s.note||'', s.delivered?'已交付':'待拍摄'
     ]);
   });
   try{
