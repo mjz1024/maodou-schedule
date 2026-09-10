@@ -283,6 +283,18 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 /* 超级管理者面板 */
 .super-panel{margin-top:16px;border:1px solid #d4a017;border-radius:14px;background:linear-gradient(135deg,rgba(212,160,23,.08),rgba(212,160,23,.02));padding:14px}
 .super-panel h3{font-size:15px;font-weight:800;color:#d4a017;margin-bottom:2px}
+.super-tree{margin-top:8px}
+.super-node{border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;background:var(--card-bg,var(--input-bg))}
+.super-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border);background:var(--input-bg)}
+.super-ops{display:flex;flex-wrap:wrap;gap:6px;padding:6px 12px 10px}
+.super-body{padding:6px 12px 12px 28px;border-top:1px dashed var(--border)}
+.super-sub-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.super-sub-row:last-child{border-bottom:none}
+.super-sub-ops{margin-left:auto}
+.super-pwd{font-family:ui-monospace,Menlo,monospace;background:var(--input-bg);padding:1px 6px;border-radius:6px;border:1px solid var(--border)}
+.role-badge{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:700}
+.role-badge.master{background:rgba(212,160,23,.15);color:#d4a017}
+.role-badge.sub{background:rgba(80,140,255,.15);color:#5b9bff}
 .super-sub{font-size:11px;color:var(--text3);margin-bottom:10px}
 .super-row{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:9px}
 .super-id{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -4937,7 +4949,8 @@ function renderMe(){
 let manageSub=null;   // null=主页 | accounts | photos | hotels | myinfo
 function isSuperAdmin(){ return currentUser && currentUser.role==='super'; }
 
-/* 超级管理者面板：管理各主账号（禁止/删除/改动/封号/导出订单） */
+/* 超级管理者面板：目录树展示所有主账号及其子账号（含密码），超管可删除/修改所有信息 */
+var expandedSuper={};   // 超管面板目录树：展开的主账号 id 集合
 function renderSuperPanel(){
   const host=$('superBody'); if(!host) return;
   const masters=DB.getUsers().filter(function(u){ return u.role==='master'||u.role==='admin'; });
@@ -4948,22 +4961,57 @@ function renderSuperPanel(){
     '<div class="super-info">'+esc(curSig)+'</div>'+
     '<div class="super-ops"><button class="btn btn-ghost btn-sm" data-super="sig">修改签名</button></div></div>';
   if(!masters.length){ html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无主账号</span></div>'; host.innerHTML=html; return; }
+  html+='<div class="super-tree">';
   masters.forEach(function(m){
     const schedN=DB.getSchedules().filter(function(s){ return s.ownerId===m.id; }).length;
     const banned=!!m.banned;
-    html+='<div class="super-row">'+
-      '<div class="super-id">'+esc(m.username)+' <span class="role-badge master">'+(m.nickname||'')+'</span></div>'+
-      '<div class="super-info">档期 '+schedN+' 单'+(m.phone?' · '+esc(m.phone):'')+(banned?' · <span style="color:#d32f2f;font-weight:700">已封禁/禁止</span>':'')+'</div>'+
-      '<div class="super-ops">'+
+    const subs=DB.getUsers().filter(function(s){ return s.role==='sub' && s.ownerId===m.id; });
+    const open=!!expandedSuper[m.id];
+    html+='<div class="super-node">';
+    html+='<div class="super-head" data-super-toggle="'+esc(m.id)+'">'+
+      '<span class="arr">'+(open?'▼':'▶')+'</span> '+
+      '<b>'+esc(m.username)+'</b> <span class="role-badge master">主账号</span> '+
+      '<span class="small" style="color:var(--text3)">密码:</span> <code class="super-pwd">'+esc(m.password||'—')+'</code>'+
+      '<span class="small" style="color:var(--text3)"> · '+schedN+'单 · '+subs.length+'个子账号</span>'+
+      (banned?' <span style="color:#d32f2f;font-weight:700">已封禁</span>':'')+
+      '</div>';
+    html+='<div class="super-ops">'+
       '<button class="btn btn-ghost btn-sm" data-super="ban" data-id="'+esc(m.id)+'">'+(banned?'解禁':'禁止')+'</button>'+
-      '<button class="btn btn-ghost btn-sm" data-super="edit" data-id="'+esc(m.id)+'">改动</button>'+
+      '<button class="btn btn-ghost btn-sm" data-super="edit" data-id="'+esc(m.id)+'">修改</button>'+
       '<button class="btn btn-ghost btn-sm" data-super="del" data-id="'+esc(m.id)+'">删除</button>'+
       '<button class="btn btn-ghost btn-sm" data-super="export" data-id="'+esc(m.id)+'">导出订单</button>'+
-      '</div></div>';
+      '</div>';
+    if(open){
+      html+='<div class="super-body">';
+      if(subs.length){
+        subs.forEach(function(s){
+          html+='<div class="super-sub-row">'+
+            '🔹 <b>'+esc(s.username)+'</b> <span class="role-badge sub">子账号</span> '+
+            '<span class="small" style="color:var(--text3)">密码:</span> <code class="super-pwd">'+esc(s.password||'—')+'</code>'+
+            '<span class="super-sub-ops">'+
+            '<button class="btn btn-ghost btn-sm" data-super-sub-edit="'+esc(s.id)+'">修改</button>'+
+            '<button class="btn btn-ghost btn-sm" data-super-sub-del="'+esc(s.id)+'">删除</button>'+
+            '</span></div>';
+        });
+      }else{
+        html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无子账号</span></div>';
+      }
+      html+='</div>';
+    }
+    html+='</div>';
   });
+  html+='</div>';
   host.innerHTML=html;
-  host.querySelectorAll('[data-super]').forEach(function(b){
+  host.querySelectorAll('[data-super-toggle]').forEach(function(b){
     b.onclick=function(){
+      const id=b.dataset.superToggle;
+      expandedSuper[id]=!expandedSuper[id];
+      renderSuperPanel();
+    };
+  });
+  host.querySelectorAll('[data-super]').forEach(function(b){
+    b.onclick=function(e){
+      if(e.target.closest('[data-super-toggle]')) return;
       const act=b.dataset.super, id=b.dataset.id;
       const target=DB.getUsers().find(function(u){ return u.id===id; });
       if(!target){ toast('未找到该账号','error'); return; }
@@ -4973,18 +5021,10 @@ function renderSuperPanel(){
         toast(nb?'已禁止「'+target.username+'」登录':'已解禁「'+target.username+'」','ok');
         renderSuperPanel();
       }else if(act==='edit'){
-        const nn=window.prompt('修改昵称', target.nickname||target.username);
-        if(nn!==null){
-          const np=window.prompt('重置密码（留空不修改）', '');
-          const patch={nickname:nn.trim()||target.username};
-          if(np) patch.password=np;
-          updateUserByAdmin(id,patch);
-          toast('已修改「'+target.username+'」资料','ok');
-          renderSuperPanel();
-        }
+        superEditUser(id);
       }else if(act==='del'){
         (async function(){
-          const ok=await confirmBox('删除主账号','确定删除主账号「'+target.username+'」及其全部数据（档期/人员/酒店/设置）？此操作不可恢复！');
+          const ok=await confirmBox('删除主账号','确定删除主账号「'+target.username+'」及其全部数据（档期/人员/酒店/设置/子账号）？此操作不可恢复！');
           if(!ok) return;
           deleteMasterAccount(id);
         })();
@@ -5004,6 +5044,53 @@ function renderSuperPanel(){
       }
     };
   });
+  host.querySelectorAll('[data-super-sub-edit]').forEach(function(b){
+    b.onclick=function(){ superEditUser(b.dataset.superSubEdit); };
+  });
+  host.querySelectorAll('[data-super-sub-del]').forEach(function(b){
+    b.onclick=function(){ superDeleteSub(b.dataset.superSubDel); };
+  });
+}
+/* 超管修改任意账号（主/子）：用户名 / 昵称 / 密码 */
+function superEditUser(id){
+  const u=DB.getUsers().find(function(x){ return x.id===id; });
+  if(!u) return;
+  const un=window.prompt('修改用户名（留空保持不变）', u.username);
+  if(un===null) return;
+  const nk=window.prompt('修改昵称（留空保持不变）', u.nickname||u.username);
+  if(nk===null) return;
+  const pw=window.prompt('修改登录密码（留空保持不变）', '');
+  if(pw===null) return;
+  const users=DB.getUsers();
+  const i=users.findIndex(function(x){ return x.id===id; });
+  if(i<0) return;
+  const un2=(un||'').trim(), nk2=(nk||'').trim(), pw2=(pw||'').trim();
+  if(un2 && un2!==u.username && users.some(function(x){ return x.username===un2 && x.id!==id; })){ toast('用户名已存在','error'); return; }
+  const nu=Object.assign({}, users[i]);
+  if(un2) nu.username=un2;
+  if(nk2) nu.nickname=nk2;
+  if(pw2) nu.password=pw2;
+  nu.updatedAt=new Date().toISOString();
+  users[i]=nu;
+  DB.setUsers(users);
+  markDirty('users'); flushPush();
+  addLog('超管修改账号', u.username);
+  renderSuperPanel();
+  toast('已修改「'+(un2||u.username)+'」资料','ok');
+}
+/* 超管删除任意子账号 */
+async function superDeleteSub(id){
+  const sub=DB.getUsers().find(function(x){ return x.id===id; });
+  if(!sub) return;
+  const ok=await confirmBox('删除子账号','确定删除子账号「'+(sub.nickname||sub.username)+'」吗？');
+  if(!ok) return;
+  DB.setUsers(DB.getUsers().filter(function(x){ return x.id!==id; }));
+  addLog('超管删除子账号', sub.username);
+  markDirty('users');
+  cloudRemoveByField('users','id',id);
+  await removeUserNestedCloud(id, sub.username);
+  flushPush(); renderSuperPanel();
+  toast('已删除子账号','ok');
 }
 /* 超管修改主账号资料 */
 function updateUserByAdmin(id, patch){
@@ -5032,6 +5119,7 @@ async function deleteMasterAccount(id){
   cloudRemoveByQuery('photographers',{_masterId:id});
   cloudRemoveByQuery('hotels',{_masterId:id});
   cloudRemoveByQuery('users',{id:id});
+  cloudRemoveByQuery('users',{ownerId:id});   // 同时清理该主账号的子账号云端文档
   addLog('超管删除账号', id);
   renderSuperPanel();
   toast('已删除主账号及其数据','ok');
