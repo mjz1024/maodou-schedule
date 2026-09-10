@@ -4336,7 +4336,10 @@ function saveSchedule(){
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), updatedAt:now
     });
+    window.__dbg=window.__dbg||[];
+    window.__dbg.push({t:'assign', fNote:$('fNote')?$('fNote').value:'NULL', sNote:s.note});
     DB.setSchedules(list);
+    window.__dbg.push({t:'afterSet', note:(DB.getSchedules().find(function(x){return x.id===editingScheduleId;})||{}).note});
     console.log('[DBG-save] B assigned note=', JSON.stringify(s.note));
     addLog('编辑档期', client+' '+shoot);
   }else{
