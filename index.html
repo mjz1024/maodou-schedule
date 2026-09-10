@@ -5848,8 +5848,9 @@ async function loginComplete(user){
   markDirty('sessions');
   // 登录后再拉取一次并补推（云端为真相源）
   if(cloudOK && navigator.onLine){
-    // 清理初始化时可能残留的空集合标记，确保登录即拉取最新档期等数据
-    dirty.delete('schedules'); dirty.delete('day_settings'); dirty.delete('operation_log');
+    // 清理初始化时可能残留的空集合标记，确保登录即拉取最新数据
+    // （档期、人员、酒店、账号、设置、广场等全部集合，云端为真相源，本地独有数据保留）
+    ['schedules','day_settings','operation_log','photographers','hotels','users','settings','plaza_topics','plaza_comments','sessions'].forEach(function(n){ dirty.delete(n); });
     await pullAllToLocal(true);
     await pushAllCollections();
     // 重新解析当前用户（云端可能更新了用户数据）
