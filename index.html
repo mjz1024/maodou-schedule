@@ -3509,7 +3509,8 @@ function startHeartbeat(){
     if(currentUser){
       try{
         const doc=await cloudDB.collection('sessions').doc('on_'+currentUser.id).get().catch(function(){ return {data:null}; });
-        const od=doc&&doc.data;
+        const raw=doc&&doc.data;
+        const od=(Array.isArray(raw)?raw[0]:raw)||null;
         if(od && od.type==='online' && od.deviceId && od.deviceId!==DB.getDeviceId()){
           toast('该账号已在其他设备登录，当前设备已退出','error');
           setTimeout(function(){ doLogout(); }, 1200);
