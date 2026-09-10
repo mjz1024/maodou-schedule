@@ -239,6 +239,10 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 
 /* 档期卡片 */
 .sched-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;border-left:4px solid var(--primary);transition:transform .12s}
+.sched-card.expanded{border-left-color:#b8860b}
+.sub-detail{margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px dashed var(--border)}
+.sub-detail-row{font-size:13px;line-height:1.9;color:var(--text)}
+.sub-detail-row span{display:inline-block;min-width:72px;font-weight:600;color:var(--text2)}
 .sched-card:active{transform:scale(.99)}
 .sched-card.delivered{border-left-color:var(--text3);opacity:.6;filter:grayscale(.6)}
 .sched-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
@@ -4104,11 +4108,100 @@ function renderScheduleList(){
     b.onclick=function(e){ e.stopPropagation(); deleteSchedule(b.closest('[data-id]').dataset.id); };
   });
   cont.querySelectorAll('.sched-card').forEach(function(card){
-    card.onclick=function(){ if(isMasterLike()) openScheduleModal(card.dataset.id); };
+    const subLong=function(e){ e.preventDefault(); e.stopPropagation(); subCapture(card.dataset.id); };
+    card.addEventListener('touchstart', function(){
+      card.__long=setTimeout(function(){ card.__longed=true; subCapture(card.dataset.id); }, 550);
+    }, {passive:true});
+    card.addEventListener('touchend', function(){ clearTimeout(card.__long); setTimeout(function(){ card.__longed=false; }, 50); }, {passive:true});
+    card.addEventListener('mousedown', function(){
+      card.__long=setTimeout(function(){ card.__longed=true; subCapture(card.dataset.id); }, 550);
+    });
+    card.addEventListener('mouseup', function(){ clearTimeout(card.__long); setTimeout(function(){ card.__longed=false; }, 50); });
+    card.addEventListener('mouseleave', function(){ clearTimeout(card.__long); });
+    card.onclick=function(e){
+      if(card.__longed){ e.stopPropagation(); return; }
+      if(isMasterLike()){ openScheduleModal(card.dataset.id); return; }
+      toggleSubDetail(this, card.dataset.id);
+    };
     if(card.classList.contains('delivered')){
       card.ondblclick=function(){ if(isMasterLike()) restoreDelivered(card.dataset.id); };
     }
   });
+}
+/* 子账号：单击订单卡片展开/收起完整详情（只读） */
+function toggleSubDetail(card, id){
+  const existing=card.querySelector('.sub-detail');
+  if(existing){ existing.remove(); card.classList.remove('expanded'); return; }
+  const s=DB.getSchedules().find(function(x){ return x.id===id; });
+  if(!s) return;
+  const d=document.createElement('div');
+  d.className='sub-detail';
+  const rows=[
+    ['客户', s.clientName||''],
+    ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
+    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')],
+    ['拍摄日期', s.shootDate||'未排期'],
+    ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
+    ['下单日期', s.orderDate||'—'],
+    ['拍摄对象', (s.shootBride!==false?'拍新娘':'')+(s.shootGroom?' / 拍新郎':'')||'—'],
+    ['服务项目', ((s.pickup?'接送 ':'')+(s.dualCamera?'双机 ':'')+(s.noMorningGown?'无晨袍 ':'')+(s.personConfirmed?'已指定 ':'')||'—')],
+    ['金额', '总额 ¥'+(s.totalAmount||0)+'  定金 ¥'+(s.deposit||0)+'  尾款 ¥'+((s.totalAmount||0)-(s.deposit||0))]
+  ];
+  rows.forEach(function(r0){
+    if(r0[1]&&r0[1]!=='—') d.innerHTML+='<div class="sub-detail-row"><span>'+r0[0]+'</span>'+esc(r0[1])+'</div>';
+  });
+  if(s.note) d.innerHTML+='<div class="sub-detail-row"><span>备注</span>'+esc(s.note)+'</div>';
+  card.appendChild(d);
+  card.classList.add('expanded');
+}
+/* 长按订单卡片：生成订单图片并显示（可长按保存） */
+function subCapture(id){
+  const s=DB.getSchedules().find(function(x){ return x.id===id; });
+  if(!s) return;
+  const W=750, H=880;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const g=c.getContext('2d');
+  g.fillStyle='#fff8ef'; g.fillRect(0,0,W,H);
+  g.fillStyle='#1a1a1a';
+  g.font='bold 34px sans-serif'; g.fillText('喜档管家 · 订单详情', 40, 70);
+  g.fillStyle='#b8860b'; g.fillRect(40, 92, 670, 3);
+  g.font='16px sans-serif'; g.fillStyle='#999'; g.fillText('生成于 '+new Date().toLocaleString('zh-CN'), 40, 122);
+  const rows=[
+    ['客户', s.clientName||''], ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
+    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')],
+    ['拍摄日期', s.shootDate||'未排期'],
+    ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
+    ['下单日期', s.orderDate||'—'],
+    ['拍摄对象', (s.shootBride!==false?'拍新娘':'')+(s.shootGroom?' / 拍新郎':'')||'—'],
+    ['服务项目', ((s.pickup?'接送 ':'')+(s.dualCamera?'双机 ':'')+(s.noMorningGown?'无晨袍 ':'')+(s.personConfirmed?'已指定 ':'')||'—')],
+    ['金额', '总额 ¥'+(s.totalAmount||0)+'  定金 ¥'+(s.deposit||0)+'  尾款 ¥'+((s.totalAmount||0)-(s.deposit||0))]
+  ];
+  let y=160;
+  rows.forEach(function(r0){
+    if(!r0[1]||r0[1]==='—') return;
+    g.fillStyle='#888'; g.font='bold 22px sans-serif'; g.fillText(r0[0], 40, y);
+    g.fillStyle='#222'; g.font='24px sans-serif';
+    g.fillText(r0[1], 170, y);
+    y+=44;
+  });
+  if(s.note){
+    g.fillStyle='#888'; g.font='bold 22px sans-serif'; g.fillText('备注', 40, y);
+    g.fillStyle='#222'; g.font='24px sans-serif';
+    const lines=s.note.length>52? s.note.slice(0,52)+'…':s.note;
+    g.fillText(lines, 170, y);
+  }
+  const img=c.toDataURL('image/png');
+  let m=document.getElementById('subCaptureModal');
+  if(!m){
+    m=document.createElement('div'); m.id='subCaptureModal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
+    m.innerHTML='<img style="max-width:88%;max-height:74%;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.4)">'+
+      '<div style="color:#fff;font-size:14px">长按图片可保存 · 点击空白处关闭</div>';
+    m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+    document.body.appendChild(m);
+  }
+  m.querySelector('img').src=img;
+  m.style.display='flex';
 }
 function refreshPhotographerFilter(){
   const sel=$('filterPhotographer');
@@ -4556,7 +4649,7 @@ function openUpcomingModal(){
   show('upcomingModal');
   body.querySelectorAll('.up-card').forEach(function(c){
     c.onclick=function(){
-      if(!isMasterLike()){ toast('子账号仅可查看档期','error'); return; }
+      if(!isMasterLike()){ toggleSubDetail(this, c.dataset.id); return; }
       const id=c.dataset.id;
       closeModal('upcomingModal');
       openScheduleModal(id);
