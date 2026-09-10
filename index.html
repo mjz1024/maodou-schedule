@@ -47,6 +47,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 input,select,textarea{font-family:inherit;font-size:15px;color:var(--text);background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none;transition:border .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--primary)}
 textarea{resize:vertical;min-height:80px}
+#fNote{resize:none;height:80px;overflow-y:auto}
 .hidden{display:none!important}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-thumb{background:var(--text3);border-radius:3px;opacity:.4}
@@ -95,7 +96,7 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .up-card-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .up-client{font-weight:700;font-size:14px}
 .up-time{font-size:12px;color:var(--primary);font-weight:600}
-.up-card-sub{font-size:12px;color:var(--text2);margin-top:4px}
+.up-card-sub{font-size:12px;color:var(--text2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Toast */
 #toastRoot{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(92vw,420px)}
@@ -246,7 +247,7 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .sched-card.delivered .sched-date{color:var(--text3)}
 .sched-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:13px;color:var(--text2)}
 .sched-meta .m{background:var(--input-bg);padding:3px 9px;border-radius:8px;font-size:12px}
-.sched-note{margin-top:8px;font-size:13px;color:var(--text2);background:var(--input-bg);border-radius:9px;padding:8px 10px;white-space:pre-wrap;word-break:break-all}
+.sched-note{margin-top:8px;font-size:13px;color:var(--text2);background:var(--input-bg);border-radius:9px;padding:8px 10px;white-space:pre-wrap;word-break:break-all;max-height:62px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .sched-money{display:flex;gap:14px;margin-top:9px;font-size:13px}
 .sched-money .amt{color:var(--text);font-weight:800}
 .sched-money .dep{color:var(--warn);font-weight:700}
@@ -3564,15 +3565,20 @@ function schedulePush(){
   if(pushTimer) clearTimeout(pushTimer);
   pushTimer=setTimeout(function(){ pushTimer=null; pushAllDirty(); }, 400);
 }
+let pendingPush=false;
 async function pushAllDirty(){
-  if(!cloudOK||pushing) return;
+  if(!cloudOK) return;
+  if(pushing){ pendingPush=true; return; }   // 推送进行中：排队，完成后重推，确保保存的修改不丢失
   pushing=true;
   try{
     const list=[];
     dirty.forEach(function(c){ list.push(c); });
     for(const c of list){ await pushCollection(c); }
   }catch(e){ console.warn(e); }
-  finally{ pushing=false; }
+  finally{
+    pushing=false;
+    if(pendingPush){ pendingPush=false; pushAllDirty(); }
+  }
 }
 async function flushPush(){
   if(pushTimer){ clearTimeout(pushTimer); pushTimer=null; }
@@ -3658,7 +3664,14 @@ function startWatchers(){
             if(cfg.filter && !cfg.filter(doc)) return;
             const i=arr.findIndex(function(x){ return x[cfg.idKey]===doc[cfg.idKey]; });
             if(ch.dataType==='remove'){ if(i>=0){ arr.splice(i,1); changed=true; } }
-            else if(ch.dataType==='update'){ if(i>=0){ arr[i]=Object.assign({}, arr[i], doc); changed=true; } }   // 合并：云端字段优先，本地独有字段（如备注）保留
+            else if(ch.dataType==='update'){ if(i>=0){
+              /* 合并：云端非空字段优先；云端空/缺省字段保留本地有值，防止脏数据覆盖本地刚保存的备注等 */
+              const merged=Object.assign({}, arr[i], doc);
+              Object.keys(doc).forEach(function(k){
+                if((doc[k]===''||doc[k]===null||doc[k]===undefined) && arr[i][k]!=='' && arr[i][k]!=null && arr[i][k]!==undefined){ merged[k]=arr[i][k]; }
+              });
+              arr[i]=merged; changed=true;
+            } }
             else if(ch.dataType==='add'){ if(i<0){ arr.push(doc); changed=true; } }
           });
           if(changed){
