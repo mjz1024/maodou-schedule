@@ -3521,7 +3521,7 @@ async function pushCollection(name){
       });
     }
     if(items.length===0){ dirty.delete(name); return; }
-    const B=50;
+    const B=10;   // 小批次并发，避免 CloudBase 限流导致 15s 超时中断
     for(let i=0;i<items.length;i+=B){
       const batch=items.slice(i,i+B);
       await Promise.all(batch.map(function(item){
@@ -3550,6 +3550,7 @@ async function pushCollection(name){
         }
         return col.add(body);
       }));
+      await new Promise(function(res){ setTimeout(res, 250); });   // 批间隔，降低触发限流概率
     }
     dirty.delete(name);
     setSyncState('on');
