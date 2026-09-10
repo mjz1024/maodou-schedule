@@ -293,6 +293,14 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .super-sub-ops{margin-left:auto}
 .super-pwd{font-family:ui-monospace,Menlo,monospace;background:var(--input-bg);padding:1px 6px;border-radius:6px;border:1px solid var(--border)}
 .role-badge{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:700}
+.dev-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.dev-row:last-child{border-bottom:none}
+.dev-name{font-weight:600}
+.dev-time{color:var(--text3)}
+.dev-status{font-size:11px;padding:1px 8px;border-radius:20px;font-weight:700}
+.dev-status.on{background:rgba(46,204,113,.15);color:#2ecc71}
+.dev-status.off{background:rgba(180,180,180,.15);color:var(--text3)}
+.dev-status.me{background:rgba(212,160,23,.18);color:#d4a017}
 .role-badge.master{background:rgba(212,160,23,.15);color:#d4a017}
 .role-badge.sub{background:rgba(80,140,255,.15);color:#5b9bff}
 .super-sub{font-size:11px;color:var(--text3);margin-bottom:10px}
@@ -3601,17 +3609,22 @@ function startWatchers(){
       cloudDB.collection(cfg.name).watch({
         onChange:function(snap){
           if(!snap.docChanges||!snap.docChanges.length) return;
-          /* 唯一在线秒级顶出：同账号在别的设备登录（新增 online 记录）→ 当前设备立即退出 */
+          /* 同账号最多 3 台设备：被"退出设备"指令踢出 → 立即退出；其他设备新登录 → 检测是否被挤出前 3 */
           if(cfg.name==='sessions'){
-            const kicked=snap.docChanges.some(function(ch){
+            const kickedByCmd=snap.docChanges.some(function(ch){
               const doc=ch.doc;
-              return doc && doc.type==='online' && currentUser && doc.userId===currentUser.id && doc.deviceId && doc.deviceId!==DB.getDeviceId();
+              return doc && doc.type==='kick' && currentUser && doc.userId===currentUser.id && doc.deviceId===DB.getDeviceId();
             });
-            if(kicked){
-              toast('该账号已在其他设备登录，当前设备已退出','error');
+            if(kickedByCmd){
+              toast('该设备已被账号所有者退出登录','error');
               setTimeout(function(){ doLogout(); }, 800);
               return;
             }
+            const newOnline=snap.docChanges.some(function(ch){
+              const doc=ch.doc;
+              return doc && doc.type==='online' && currentUser && doc.userId===currentUser.id && doc.deviceId && doc.deviceId!==DB.getDeviceId();
+            });
+            if(newOnline){ checkSessionLimit(); return; }
           }
           /* users 删除标记：云端标记删除 → 本地立即移除该 id 全部账号，防止残留复活 */
           if(cfg.name==='users'){
@@ -3647,22 +3660,77 @@ function startWatchers(){
   });
 }
 
+/* 三设备上限检测：当前设备不在最新 3 台在线记录中 → 退出 */
+async function checkSessionLimit(){
+  if(!cloudOK||!cloudDB||!currentUser) return;
+  try{
+    const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
+    const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+    const myIdx=onlines.findIndex(function(d){ return d.deviceId===DB.getDeviceId(); });
+    if(myIdx>=3){
+      toast('本账号同时在线已达 3 台，当前设备已被顶出','error');
+      setTimeout(function(){ doLogout(); }, 1000);
+    }
+  }catch(e){}
+}
+/* "我的"页已登录设备列表：云端读取该账号在线记录，最多 3 台在线 */
+async function loadDeviceList(){
+  const host=$('deviceList'); if(!host) return;
+  if(!cloudOK||!cloudDB||!currentUser){ host.innerHTML='<span class="lbl small" style="color:var(--text3)">离线状态，无法获取设备列表</span>'; return; }
+  try{
+    const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
+    const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+    let html='';
+    if(!onlines.length){ html='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无在线设备记录</span></div>'; }
+    onlines.slice(0,8).forEach(function(d,i){
+      const isMe=d.deviceId===DB.getDeviceId();
+      const online=i<3;
+      html+='<div class="dev-row">'+
+        '<span class="dev-name">'+esc(d.deviceName||((d.deviceId||'未知设备').slice(0,18)))+'</span>'+
+        '<span class="dev-time small">'+fmtTime(d.loginAt)+'</span>'+
+        '<span class="dev-status '+(isMe?'me':(online?'on':'off'))+'">'+(isMe?'本机':(online?'在线':'已下线'))+'</span>'+
+        (isMe||!online?'':'<button class="btn btn-ghost btn-sm" data-dev-kick="'+esc(d.deviceId)+'">退出</button>')+
+        '</div>';
+    });
+    if(onlines.length>3) html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">仅最新 3 台为在线设备，其余自动下线</span></div>';
+    host.innerHTML=html;
+    host.querySelectorAll('[data-dev-kick]').forEach(function(b){
+      b.onclick=function(){ sessionKick(b.dataset.devKick); };
+    });
+  }catch(e){ host.innerHTML='<div class="me-row"><span class="lbl small" style="color:var(--text3)">设备列表加载失败</span></div>'; }
+}
+/* 退出指定设备：写入踢出指令（该设备数秒内被强制下线） */
+async function sessionKick(deviceId){
+  if(!currentUser) return;
+  const ok=await confirmBox('退出设备','确定让该设备退出登录吗？该设备将在数秒内被强制下线。');
+  if(!ok) return;
+  try{
+    await cloudDB.collection('sessions').add({type:'kick', userId:currentUser.id, deviceId:deviceId, kickedAt:new Date().toISOString()});
+    toast('已发送退出指令，该设备即将下线','ok');
+    loadDeviceList();
+  }catch(e){ toast('操作失败，请稍后重试','error'); }
+}
+
 /* 心跳：20s 拉取一次最新数据；同时校验唯一在线（被顶出检测） */
 function startHeartbeat(){
   setInterval(async function(){
     if(!cloudOK||!navigator.onLine) return;
     if(pushing) return;
-    /* 唯一在线：读取该账号最新一条在线记录，若指向其他设备 → 当前设备被顶出 */
+    /* 三设备在线判定：自己不在该账号最新 3 台在线设备中 → 被顶出；或被"退出设备"指令踢出 → 退出 */
     if(currentUser){
       try{
-        const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(20).get();
-        const docs=res.data||[];
-        let latest=null, latestAt='';
-        docs.forEach(function(d){
-          if(d && d.loginAt && (!latestAt || d.loginAt>latestAt)){ latest=d; latestAt=d.loginAt; }
-        });
-        if(latest && latest.deviceId && latest.deviceId!==DB.getDeviceId()){
-          toast('该账号已在其他设备登录，当前设备已退出','error');
+        const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
+        const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+        const myIdx=onlines.findIndex(function(d){ return d.deviceId===DB.getDeviceId(); });
+        if(myIdx>=3){
+          toast('本账号同时在线已达 3 台，当前设备已被顶出','error');
+          setTimeout(function(){ doLogout(); }, 1200);
+          return;
+        }
+        const kres=await cloudDB.collection('sessions').where({type:'kick', userId:currentUser.id, deviceId:DB.getDeviceId()}).limit(20).get();
+        const kicked=(kres.data||[]).some(function(d){ return d&&d.kickedAt&&(!myLoginStamp||d.kickedAt>myLoginStamp); });
+        if(kicked){
+          toast('该设备已被账号所有者退出登录','error');
           setTimeout(function(){ doLogout(); }, 1200);
           return;
         }
@@ -4844,6 +4912,9 @@ function renderMe(){
   html+='<div class="me-row"><span class="lbl">提前两日提醒拍摄（每日一次）</span><div class="switch'+(s.reminder!==false?' on':'')+'" id="reminderSwitch"></div></div>';
   html+='</div></div>';
 
+  // 已登录设备（同账号最多 3 台在线，可退出指定设备）
+  html+='<div class="me-card" data-me-card="devices"><h3 class="me-card-head"><span>已登录设备（同账号最多 3 台在线）</span></h3><div class="me-card-body" id="deviceList"><span class="lbl small" style="color:var(--text3)">加载中…</span></div></div>';
+
   if(masterLike){
     // 账号管理 / 人员管理 / 酒店管理 已移至底部「管理」页并列展示
     html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、人员管理、酒店管理请到底部「管理」页操作</span></div>';
@@ -4930,6 +5001,7 @@ function renderMe(){
     }
     renderMe(); toast(on?'已开启拍摄提醒':'已关闭提醒','ok');
   };
+  loadDeviceList();   // 已登录设备列表（异步加载云端在线记录）
   if($('avatarBtn')){
     $('avatarBtn').onclick=function(){ $('avatarFile').click(); };
     $('avatarFile').onchange=function(e){
@@ -4985,6 +5057,17 @@ function isSuperAdmin(){ return currentUser && currentUser.role==='super'; }
 
 /* 超级管理者面板：目录树展示所有主账号及其子账号（含密码），超管可删除/修改所有信息 */
 var expandedSuper={};   // 超管面板目录树：展开的主账号 id 集合
+var myLoginStamp='';    // 本次登录时间戳（用于被"退出设备"指令踢出的判定：仅晚于本次登录的踢出生效）
+function getDeviceName(){
+  const ua=(navigator.userAgent||'');
+  let n='浏览器';
+  if(/MicroMessenger/i.test(ua)) n='微信';
+  else if(/iPhone|iPad/i.test(ua)) n='iPhone';
+  else if(/Android/i.test(ua)) n='Android';
+  else if(/Macintosh|Mac OS X/i.test(ua)) n='Mac';
+  else if(/Windows/i.test(ua)) n='Windows';
+  return n;
+}
 function renderSuperPanel(){
   const host=$('superBody'); if(!host) return;
   const masters=DB.getUsers().filter(function(u){ return u.role==='master'||u.role==='admin'; });
@@ -6051,12 +6134,13 @@ async function loginComplete(user){
     DB.setUsers(DB.getUsers());
     markDirty('users');
     try{ await flushPush(); }catch(e){}
-    // 唯一在线：登录即新增一条在线记录（最新记录所在设备为唯一在线端，旧设备将被顶出）
+    // 唯一在线改：同账号最多 3 台设备同时在线（新增在线记录；被挤出的旧设备自行检测退出）
     try{
       await cloudDB.collection('sessions').add({
         type:'online', userId:user.id, username:user.username,
-        deviceId:DB.getDeviceId(), loginAt:new Date().toISOString()
+        deviceId:DB.getDeviceId(), deviceName:getDeviceName(), loginAt:new Date().toISOString()
       });
+      myLoginStamp=new Date().toISOString();
     }catch(e){ console.warn('[cloud] 在线登记失败', e); }
   }
   // 离线登录也记录登录统计
