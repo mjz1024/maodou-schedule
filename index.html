@@ -150,8 +150,32 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .sync-dot.off{background:var(--danger)}
 .sync-dot.busy{background:var(--warn);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.35}}
-.header-user{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700}
-.header-user .u-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-user{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;cursor:pointer;padding:5px 9px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg);transition:transform .12s}
+.header-user:active{transform:scale(.96)}
+.header-user .u-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.header-txt{min-width:0}
+.header-sig{display:inline-block;vertical-align:middle;margin-left:7px;font-size:11.9px;font-weight:500;color:var(--text3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;overflow:hidden}
+.header-avatar img{width:100%;height:100%;object-fit:cover}
+.hu-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.hu-sig{font-size:10px;color:var(--text3);font-weight:500;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hu-caret{color:var(--text3);font-size:10px;flex-shrink:0}
+/* 用户菜单 */
+.user-menu-card{max-width:330px;width:100%}
+.um-head{display:flex;align-items:center;gap:12px}
+.um-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0;overflow:hidden}
+.um-avatar img{width:100%;height:100%;object-fit:cover}
+.um-id{flex:1;min-width:0}
+.um-name{font-size:17px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.um-meta{font-size:12px;color:var(--text3);margin-top:3px}
+.um-close{flex-shrink:0}
+.um-sig{font-size:12px;color:var(--text2);background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:8px 11px;margin:12px 0;word-break:break-all}
+.um-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.um-actions .btn{font-size:13px}
+.um-form{margin-top:12px;border-top:1px dashed var(--border);padding-top:12px}
+.um-form .fld{margin-bottom:9px}
+.um-form .fld input{width:100%;box-sizing:border-box;margin-top:4px}
+@media(max-width:420px){ .hu-sig{display:none} }
 .icon-btn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--input-bg);border:1px solid var(--border);color:var(--text2);font-size:16px}
 .icon-btn:active{transform:scale(.94)}
 
@@ -2733,15 +2757,19 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
     <div class="header-inner">
       <div class="header-l">
         <div class="header-logo">毛</div>
-        <div>
-          <div class="header-title">毛豆档期</div>
+        <div class="header-txt">
+          <div class="header-title">毛豆档期<span class="header-sig" id="headerSig"></span></div>
           <div class="sync-state"><span class="sync-dot" id="syncDot"></span><span id="syncText">同步中</span></div>
         </div>
       </div>
       <div class="header-r">
-        <div class="header-user">
-          <span class="u-name" id="currentUsername">--</span>
-          <span class="role-badge" id="currentRoleBadge">--</span>
+        <div class="header-user" id="headerUserChip" title="点击打开用户菜单">
+          <span class="header-avatar" id="headerAvatar">--</span>
+          <div class="hu-text">
+            <span class="u-name" id="currentUsername">--</span>
+            <span class="hu-sig" id="headerUserSig"></span>
+          </div>
+          <span class="hu-caret">▾</span>
         </div>
         <button class="icon-btn" id="headerSyncBtn" title="立即同步">⟳</button>
       </div>
@@ -2834,11 +2862,12 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
       <div class="form-item" style="margin-bottom:12px">
         <label>板块</label>
         <div class="cat-row">
+          <label class="check-label"><input type="radio" name="topicCat" value="supply"> 📢 供求信息</label>
           <label class="check-label"><input type="radio" name="topicCat" value="photo" checked> 📸 摄影师区</label>
+          <label class="check-label"><input type="radio" name="topicCat" value="planner"> 💍 策划师区</label>
           <label class="check-label"><input type="radio" name="topicCat" value="camera"> 🎥 摄像师区</label>
           <label class="check-label"><input type="radio" name="topicCat" value="host"> 🎤 主持人区</label>
           <label class="check-label"><input type="radio" name="topicCat" value="makeup"> 💄 化妆师区</label>
-          <label class="check-label"><input type="radio" name="topicCat" value="supply"> 📢 供求信息</label>
         </div>
       </div>
       <div class="form-item" style="margin-bottom:12px">
@@ -2967,6 +2996,33 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
 
 <div id="toastRoot"></div>
 <div id="confirmRoot" class="hidden"></div>
+
+<!-- 用户菜单弹层 -->
+<div class="modal-mask hidden" id="userMenuModal">
+  <div class="modal-box user-menu-card">
+    <div class="um-head">
+      <div class="um-avatar" id="umAvatar"></div>
+      <div class="um-id">
+        <div class="um-name" id="umName">--</div>
+        <div class="um-meta" id="umMeta">--</div>
+      </div>
+      <button class="icon-btn um-close" id="umClose">✕</button>
+    </div>
+    <div class="um-sig" id="umSig"></div>
+    <div class="um-actions">
+      <button class="btn btn-ghost" id="umAvatarBtn">🖼 更换头像</button>
+      <button class="btn btn-ghost" id="umProfileBtn">✏️ 完善个人信息</button>
+      <button class="btn btn-ghost" id="umSwitchBtn">🔁 更换账号</button>
+      <button class="btn btn-danger-ghost" id="umLogoutBtn">⏻ 退出登录</button>
+    </div>
+    <div class="um-form hidden" id="umProfileForm">
+      <div class="fld"><span class="lbl">昵称</span><input id="umNickInput" placeholder="昵称"></div>
+      <div class="fld"><span class="lbl">签名</span><input id="umSigInput" placeholder="个性签名（将显示在顶部与广场）"></div>
+      <button class="btn btn-primary btn-sm" id="umSaveBtn">保存</button>
+    </div>
+    <input type="file" id="umAvatarFile" accept="image/*" class="hidden">
+  </div>
+</div>
 
 <script>
 'use strict';
@@ -3550,6 +3606,7 @@ function loadTheme(){
 /* ============ 渲染总入口 ============ */
 function renderAll(){
   loadTheme();
+  renderHeaderUser();
   renderCalendar();
   renderScheduleList();
   if(activeTab==='manage') renderManage();
@@ -3558,6 +3615,36 @@ function renderAll(){
   }
   if(activeTab==='me') renderMe();
 }
+
+/* 顶部头部：账号 + 签名 + 头像 */
+function renderHeaderUser(){
+  if(!currentUser){ return; }
+  const u=currentUser;
+  const avEl=$('headerAvatar'), nmEl=$('currentUsername'), usEl=$('headerUserSig'), hsig=$('headerSig');
+  if(!avEl) return;
+  if(u.avatar){ avEl.innerHTML='<img src="'+esc(u.avatar)+'" alt="">'; }
+  else{ avEl.textContent=(u.nickname||u.username||'匿').charAt(0); }
+  nmEl.textContent=u.nickname||u.username;
+  usEl.textContent=u.signature||'';
+  hsig.textContent=u.signature?('· '+u.signature):'';
+}
+
+/* 用户菜单弹层 */
+function openUserMenu(){
+  if(!currentUser) return;
+  const u=currentUser;
+  const av=$('umAvatar');
+  if(u.avatar){ av.innerHTML='<img src="'+esc(u.avatar)+'" alt="">'; }
+  else{ av.textContent=(u.nickname||u.username||'匿').charAt(0); }
+  $('umName').textContent=u.nickname||u.username;
+  $('umMeta').textContent=(u.username||'')+' · '+roleName(u.role);
+  $('umSig').textContent=u.signature?('签名：'+u.signature):'（未设置签名）';
+  $('umProfileForm').classList.add('hidden');
+  $('umNickInput').value=u.nickname||'';
+  $('umSigInput').value=u.signature||'';
+  $('userMenuModal').classList.remove('hidden');
+}
+function closeUserMenu(){ $('userMenuModal').classList.add('hidden'); }
 
 /* ============ 档期：日历 ============ */
 function initCalDates(){
@@ -4156,13 +4243,14 @@ function openUpcomingModal(){
 function sortTopicsDesc(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); }
 function commentCount(topicId){ return DB.getPlazaComments().filter(function(c){return c.topicId===topicId;}).length; }
 const PLAZA_CATS=[
+  {key:'supply', name:'📢 供求信息'},
   {key:'photo', name:'📸 摄影师区'},
+  {key:'planner', name:'💍 策划师区'},
   {key:'camera', name:'🎥 摄像师区'},
   {key:'host', name:'🎤 主持人区'},
-  {key:'makeup', name:'💄 化妆师区'},
-  {key:'supply', name:'📢 供求信息'}
+  {key:'makeup', name:'💄 化妆师区'}
 ];
-const expandedPlazaCats={photo:true, camera:false, host:false, makeup:false, supply:false};
+const expandedPlazaCats={supply:true, photo:true, planner:false, camera:false, host:false, makeup:false};
 function topicCatName(k){
   const c=PLAZA_CATS.find(function(x){return x.key===k;});
   return c?c.name:(k==='fun'?'📢 供求信息':'📸 摄影师区');
@@ -4177,6 +4265,7 @@ function updateMeUser(patch){
   users[i]=Object.assign({}, users[i], patch, {updatedAt:new Date().toISOString()});
   currentUser=Object.assign({}, currentUser, patch);
   DB.setUsers(users);
+  renderHeaderUser();
   markDirty('users');
   flushPush();
   const sess=DB.getSession();
@@ -5683,6 +5772,7 @@ async function showQrConfirm(code){
 /* 登录后公共流程：写会话 → 云端补拉补推 → 进入主界面 */
 async function loginComplete(user){
   currentUser=user;
+  renderHeaderUser();
   DB.setSession({
     id:uid('sess'),
     currentUser:{id:user.id, username:user.username, nickname:user.nickname, role:user.role},
@@ -5789,6 +5879,45 @@ function bindEvents(){
       toast('已同步到最新','ok');
     })();
   };
+
+  // 右上角用户菜单
+  $('headerUserChip').onclick=function(){ openUserMenu(); };
+  $('umClose').onclick=closeUserMenu;
+  $('userMenuModal').addEventListener('click', function(e){ if(e.target===$('userMenuModal')) closeUserMenu(); });
+  // 更换头像
+  $('umAvatarBtn').onclick=function(){ $('umAvatarFile').click(); };
+  $('umAvatarFile').addEventListener('change', function(e){
+    const f=e.target.files&&e.target.files[0];
+    if(!f) return;
+    if(!checkMediaSize(f,'图片')){ e.target.value=''; return; }
+    compressImage(f, function(dataUrl){
+      updateMeUser({avatar:dataUrl});
+      toast('头像已更新','ok');
+      e.target.value='';
+      renderHeaderUser(); renderMe();
+      if(activeTab==='plaza') renderPlaza();
+      openUserMenu();
+    });
+  });
+  // 完善个人信息
+  $('umProfileBtn').onclick=function(){
+    $('umProfileForm').classList.toggle('hidden');
+  };
+  $('umSaveBtn').onclick=function(){
+    const nick=($('umNickInput').value||'').trim();
+    const sig=($('umSigInput').value||'').trim();
+    const patch={};
+    if(nick) patch.nickname=nick;
+    patch.signature=sig;
+    updateMeUser(patch);
+    toast('个人信息已保存','ok');
+    renderHeaderUser(); renderMe();
+    if(activeTab==='plaza') renderPlaza();
+    closeUserMenu();
+  };
+  // 更换账号 / 退出登录
+  $('umSwitchBtn').onclick=function(){ closeUserMenu(); doLogout(); toast('请登录其他账号'); };
+  $('umLogoutBtn').onclick=function(){ closeUserMenu(); doLogout(); };
 
   // 广场
   $('newTopicBtn').onclick=function(){ modalOpen=true; resetTopicMedia(); show('newTopicModal'); $('topicTitle').focus(); };
