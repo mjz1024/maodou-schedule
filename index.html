@@ -3340,23 +3340,27 @@ async function pullAllToLocal(force){
   if(!cloudOK) return false;
   const skip=function(c){ return dirty.has(c); };
   const myMid=getCurrentMasterId();   // 未登录时为 null：跳过私有集合，避免混合
-  // 通用合并：以 id 去重，云端优先覆盖同 id，本地独有保留（本地数据永不丢失）
+  // 通用合并：以 id 去重。云端同 id 多份先按 _syncAt 取最新（用户清空/最新保存优先），再与本地合并：
+  // 云端空/缺省字段不覆盖本地非空值（保护本地已录数据），云端非空新值覆盖本地旧值
   function mergeById(local, cloud){
-    const by={};
-    (local||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
+    const cloudBy={};
     (cloud||[]).forEach(function(x){
       if(x&&x.id){
-        const cur=by[x.id];
-        /* 同 id 多份（跨身份 add 残留）时取 _syncAt/updatedAt 最新一份，避免旧数据覆盖新统计 */
-        if(!cur || (x._syncAt||x.updatedAt||'') >= (cur._syncAt||cur.updatedAt||'')){
-          /* 字段级合并：云端空/缺省字段不覆盖本地非空值，保护本地刚保存的数据（如备注） */
-          const merged=Object.assign({}, cur||{}, x);
-          Object.keys(x).forEach(function(k){
-            if((x[k]===''||x[k]===null||x[k]===undefined) && cur && cur[k]!=='' && cur[k]!=null && cur[k]!==undefined){ merged[k]=cur[k]; }
-          });
-          by[x.id]=merged;
-        }
+        const cur=cloudBy[x.id];
+        if(!cur || (x._syncAt||x.updatedAt||'') >= (cur._syncAt||cur.updatedAt||'')) cloudBy[x.id]=x;
       }
+    });
+    const by={};
+    (local||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
+    Object.keys(cloudBy).forEach(function(id){
+      const x=cloudBy[id];
+      const cur=by[id];
+      if(!cur){ by[id]=x; return; }
+      const merged=Object.assign({}, cur, x);
+      Object.keys(x).forEach(function(k){
+        if((x[k]===''||x[k]===null||x[k]===undefined) && cur[k]!=='' && cur[k]!=null && cur[k]!==undefined){ merged[k]=cur[k]; }
+      });
+      by[id]=merged;
     });
     return Object.keys(by).map(function(k){ return by[k]; });
   }
