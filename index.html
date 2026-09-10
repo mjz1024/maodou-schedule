@@ -3341,7 +3341,12 @@ async function pullAllToLocal(force){
         const cur=by[x.id];
         /* 同 id 多份（跨身份 add 残留）时取 _syncAt/updatedAt 最新一份，避免旧数据覆盖新统计 */
         if(!cur || (x._syncAt||x.updatedAt||'') >= (cur._syncAt||cur.updatedAt||'')){
-          by[x.id]=x;
+          /* 字段级合并：云端空/缺省字段不覆盖本地非空值，保护本地刚保存的数据（如备注） */
+          const merged=Object.assign({}, cur||{}, x);
+          Object.keys(x).forEach(function(k){
+            if((x[k]===''||x[k]===null||x[k]===undefined) && cur && cur[k]!=='' && cur[k]!=null && cur[k]!==undefined){ merged[k]=cur[k]; }
+          });
+          by[x.id]=merged;
         }
       }
     });
@@ -4377,6 +4382,21 @@ function saveSchedule(){
     addLog('新增档期', client+' '+shoot);
   }
   markDirty('schedules');
+  /* 保存后立即单文档推送（用户修改实时上云，不等全量同步；跨身份 set 失败自动 add 兜底） */
+  if(cloudOK && cloudDB){
+    const mid2=getCurrentMasterId();
+    const sid=editingScheduleId||(DB.getSchedules().length? (DB.getSchedules()[DB.getSchedules().length-1]||{}).id:'');
+    const s3=DB.getSchedules().find(function(x){ return x&&x.id===sid; });
+    if(s3){
+      const b=Object.assign({}, s3, cloudMeta());
+      delete b._id; delete b._openid;
+      if(sid===editingScheduleId && editingScheduleId){
+        cloudDB.collection('schedules').doc('s_'+sid).set(b).catch(function(){ cloudDB.collection('schedules').add(b).catch(function(){}); });
+      } else {
+        cloudDB.collection('schedules').add(b).catch(function(){});
+      }
+    }
+  }
   flushPush();
   setTimeout(function(){ const s2=DB.getSchedules().find(function(x){return x.id===editingScheduleId;}); console.log('[DBG-save] C after1.5s note=', JSON.stringify(s2?s2.note:'NONE')); }, 1500);
   renderAll();
