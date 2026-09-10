@@ -3552,6 +3552,18 @@ function startWatchers(){
       cloudDB.collection(cfg.name).watch({
         onChange:function(snap){
           if(!snap.docChanges||!snap.docChanges.length) return;
+          /* 唯一在线秒级顶出：同账号在别的设备登录（新增 online 记录）→ 当前设备立即退出 */
+          if(cfg.name==='sessions'){
+            const kicked=snap.docChanges.some(function(ch){
+              const doc=ch.doc;
+              return doc && doc.type==='online' && currentUser && doc.userId===currentUser.id && doc.deviceId && doc.deviceId!==DB.getDeviceId();
+            });
+            if(kicked){
+              toast('该账号已在其他设备登录，当前设备已退出','error');
+              setTimeout(function(){ doLogout(); }, 800);
+              return;
+            }
+          }
           const arr=DB.get(cfg.local, []);
           let changed=false;
           snap.docChanges.forEach(function(ch){
