@@ -427,6 +427,8 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-item{display:flex;flex-direction:column;gap:5px}
 .form-item.full{grid-column:1/-1}
+.form-row3{grid-column:1/-1;display:flex;gap:10px}
+.form-row3 .form-item{flex:1}
 .form-item label{font-size:13px;color:var(--text2);font-weight:600}
 .check-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:4px 0}
 .check-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer}
@@ -2970,9 +2972,11 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>拍摄日期</label><input id="fShootDate" type="date"></div>
         <div class="form-item"><label>人员到场时间</label><input id="fArrival" type="time"></div>
         <div class="form-item"><label>新郎抵达时间</label><input id="fGroomArrival" type="time"></div>
-        <div class="form-item"><label>总额（元）</label><input id="fTotal" type="number" min="0" step="0.01" placeholder="0"></div>
-        <div class="form-item"><label>定金（元）</label><input id="fDeposit" type="number" min="0" step="0.01" placeholder="0"></div>
-        <div class="form-item"><label>尾款（自动计算）</label><input id="fBalance" type="text" readonly placeholder="总额 - 定金"></div>
+        <div class="form-row3">
+          <div class="form-item"><label>总额</label><input id="fTotal" type="number" min="0" step="0.01" placeholder="0"></div>
+          <div class="form-item"><label>定金</label><input id="fDeposit" type="number" min="0" step="0.01" placeholder="0"></div>
+          <div class="form-item"><label>尾款</label><input id="fBalance" type="text" readonly placeholder="总额 - 定金"></div>
+        </div>
         <div class="form-item full">
           <div class="check-row">
             <span style="font-size:13px;color:var(--text2)">拍摄对象：</span>
