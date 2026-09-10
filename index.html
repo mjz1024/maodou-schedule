@@ -217,6 +217,18 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 
 /* ============ 留言广场 ============ */
 .plaza-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+/* 管理中心 */
+.manage-title{font-size:17px;font-weight:800;margin:2px 0 4px;color:var(--text1)}
+.manage-sub{color:var(--text3);font-size:12px;margin-bottom:14px}
+.mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mgr-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}
+.mgr-card:active{transform:scale(.97)}
+.mgr-ic{width:42px;height:42px;border-radius:12px;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;font-size:20px}
+.mgr-t{font-weight:800;font-size:14px;color:var(--text1)}
+.mgr-d{font-size:11px;color:var(--text3);line-height:1.4}
+.mgr-arr{position:absolute;top:16px;right:14px;color:var(--text3);font-size:18px}
+.manage-back-row{margin-bottom:6px}
+.mgr-sub-title{font-size:16px;font-weight:800;color:var(--text1);margin-bottom:10px}
 .plaza-head h2{font-size:19px;font-weight:800}
 .plaza-sub{font-size:12px;color:var(--text3);margin-top:2px}
 .plaza-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;margin-bottom:11px;cursor:pointer;transition:transform .12s}
@@ -397,6 +409,9 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
     <button class="tab-item" data-tab="plaza">
       <span class="t-ic">☷</span><span>广场</span>
     </button>
+    <button class="tab-item" data-tab="manage">
+      <span class="t-ic">⚙</span><span>管理</span>
+    </button>
     <button class="tab-item" data-tab="me">
       <span class="t-ic">◉</span><span>我的</span>
     </button>
@@ -417,6 +432,11 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
       </div>
       <div id="scheduleListView"></div>
       <button class="fab" id="fabAddBtn" title="新增档期">＋</button>
+    </div>
+
+    <!-- 管理 -->
+    <div class="tab-page hidden" id="tab-manage">
+      <div id="manageView"></div>
     </div>
 
     <!-- 留言广场 -->
@@ -1076,6 +1096,7 @@ function renderAll(){
   loadTheme();
   renderCalendar();
   renderScheduleList();
+  if(activeTab==='manage') renderManage();
   if(activeTab==='plaza'){
     if(activeTopicId) renderTopicDetail(activeTopicId); else renderPlaza();
   }
@@ -1764,9 +1785,6 @@ function renderMe(){
   const mid=getCurrentMasterId();
   const u=currentUser;
   const s=masterSettings();
-  const photos=mid?DB.getPhoto(mid):[];
-  const hotels=mid?DB.getHotels(mid):[];
-  const subs=DB.getUsers().filter(function(x){ return x.role==='sub' && (x.ownerId===mid); });
   const sessions=DB.getSessions().slice().sort(function(a,b){ return (b.loginTime||'').localeCompare(a.loginTime||''); }).slice(0,20);
   const logs=mid?DB.getOpLog(mid).slice(0,50):[];
   const masterLike=isMasterLike();
@@ -1797,66 +1815,8 @@ function renderMe(){
   html+='</div></div>';
 
   if(masterLike){
-    // 账号管理（子账号）
-    html+='<div class="me-card'+(expandedMeCards.subs?'':' collapsed')+'" data-me-card="subs"><h3 class="me-card-head" data-toggle-me="subs"><span>账号管理（子账号）</span><span class="arr">▶</span></h3><div class="me-card-body">';
-    html+='<div class="me-row"><span class="lbl small">点击子账号可编辑信息，✕ 删除</span></div>';
-    if(subs.length){
-      html+='<div class="chip-list">';
-      subs.forEach(function(sub){
-        html+='<div class="chip-item" data-sub-edit="'+esc(sub.id)+'"><span class="drag">👤</span>'+esc(sub.nickname||sub.username)+(sub.wechat&&sub.wechat.phone?'<span class="val small" style="margin-left:4px">微信</span>':'')+' <button class="x" data-sub-del="'+esc(sub.id)+'">✕</button></div>';
-      });
-      html+='</div>';
-    }else{
-      html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无子账号</span></div>';
-    }
-    html+='<button class="btn btn-primary btn-sm" style="margin-top:12px" id="addSubBtn">＋ 添加子账号</button>';
-    html+='</div></div>';
-
-    // 摄影师
-    html+='<div class="me-card'+(expandedMeCards.photos?'':' collapsed')+'" data-me-card="photos"><h3 class="me-card-head" data-toggle-me="photos"><span>摄影师管理</span><span class="arr">▶</span></h3><div class="me-card-body">';
-    html+='<div class="me-row"><span class="lbl small">长按拖拽可排序，顺序即选择顺序</span></div>';
-    html+='<div class="chip-list" id="photoList">';
-    photos.forEach(function(p){ html+='<div class="chip-item" draggable="true" data-photo="'+esc(p)+'"><span class="drag">☰</span>'+esc(p)+'<button class="x" data-photo-del="'+esc(p)+'">✕</button></div>'; });
-    html+='</div>';
-    html+='<div style="display:flex;gap:8px;margin-top:10px"><input id="newPhoto" placeholder="输入摄影师名称"><button class="btn btn-primary btn-sm" id="addPhotoBtn">添加</button></div></div></div>';
-
-    // 酒店（目录树，折叠式）
-    html+='<div class="me-card'+(expandedMeCards.hotels?'':' collapsed')+'" data-me-card="hotels"><h3 class="me-card-head" data-toggle-me="hotels"><span>酒店管理（酒店 → 厅 → 策划师）</span><span class="arr">▶</span></h3><div class="me-card-body">';
-    html+='<div class="me-row"><span class="lbl small">点击酒店名称展开/收起；按目录树维护：先加酒店，再在酒店下加厅，最后在厅下添加负责的策划师</span></div>';
-    html+='<div class="hotel-tree" id="hotelTree">';
-    hotels.forEach(function(h){
-      const hn=hotelName(h);
-      const halls=hotelHalls(h);
-      const openCls=expandedHotels[hn]?' open':'';
-      html+='<div class="hotel-node'+openCls+'">';
-      html+='<div class="hotel-head" data-toggle-hotel="'+esc(hn)+'"><span><span class="arr">▶</span> 🏨 '+esc(hn)+(halls.length?'<span class="hcount">'+halls.length+'厅</span>':'')+'</span><button class="x" data-hotel-del="'+esc(hn)+'">✕</button></div>';
-      html+='<div class="hotel-body">';
-      // 酒店共用策划师（一个酒店所有厅共用）
-      const sharedPs=[];
-      hotelPlanners(h).forEach(function(p){ if(sharedPs.indexOf(p)<0) sharedPs.push(p); });
-      hotelHalls(h).forEach(function(x){
-        hallPlanners(h, hallName(x)).forEach(function(p){ if(sharedPs.indexOf(p)<0) sharedPs.push(p); });
-      });
-      if(sharedPs.length){
-        html+='<div class="me-row" style="border:none;padding:2px 0"><span class="lbl small" style="color:var(--primary);font-weight:700">共用策划师（全厅通用）</span></div>';
-        html+='<div class="hall-planners">';
-        sharedPs.forEach(function(p){ html+='<span class="p-chip">'+esc(p)+'<button class="x" data-planner-del="'+esc(hn)+'|'+esc(p)+'">✕</button></span>'; });
-        html+='</div>';
-      }
-      html+='<div class="tree-add"><input data-planner-add="'+esc(hn)+'" placeholder="添加酒店共用策划师"><button class="btn btn-primary btn-sm" data-add-planner="'+esc(hn)+'">＋</button></div>';
-      if(halls.length){
-        halls.forEach(function(x){
-          const xName=hallName(x);
-          html+='<div class="hall-node"><div class="hall-head"><span>🪟 '+esc(xName)+'</span><button class="x" data-hall-del="'+esc(hn)+'|'+esc(xName)+'">✕</button></div>';
-          html+='</div>';
-        });
-      }
-      html+='<div class="tree-add"><input data-hall-add="'+esc(hn)+'" placeholder="该酒店下添加厅名"><button class="btn btn-primary btn-sm" data-add-hall="'+esc(hn)+'">＋</button></div>';
-      html+='</div></div>';
-    });
-    if(!hotels.length) html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无酒店，先添加第一个酒店吧</span></div>';
-    html+='</div>';
-    html+='<div class="tree-add"><input id="newHotel" placeholder="输入新酒店名称"><button class="btn btn-primary btn-sm" id="addHotelBtn">添加酒店</button></div></div></div>';
+    // 账号管理 / 摄影师管理 / 酒店管理 已移至底部「管理」页并列展示
+    html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、摄影师管理、酒店管理请到底部「管理」页操作</span></div>';
 
     // 数据
     html+='<div class="me-card'+(expandedMeCards.data?'':' collapsed')+'" data-me-card="data"><h3 class="me-card-head" data-toggle-me="data"><span>数据管理</span><span class="arr">▶</span></h3><div class="me-card-body">';
@@ -1922,54 +1882,7 @@ function renderMe(){
     }
     renderMe(); toast(on?'已开启明日拍摄提醒':'已关闭提醒','ok');
   };
-  if($('addSubBtn')){
-    $('addSubBtn').onclick=function(){ openSubAccountModal('add'); };
-    $('meView').querySelectorAll('[data-sub-edit]').forEach(function(b){
-      b.onclick=function(e){
-        if(e.target.closest('[data-sub-del]')) return;
-        openSubAccountModal('edit', b.dataset.subEdit);
-      };
-    });
-    $('meView').querySelectorAll('[data-sub-del]').forEach(function(b){
-      b.onclick=function(){ deleteSubAccount(b.dataset.subDel); };
-    });
-    $('addPhotoBtn').onclick=addPhotographer;
-    $('meView').querySelectorAll('[data-photo-del]').forEach(function(b){
-      b.onclick=function(){ removePhotographer(b.dataset.photoDel); };
-    });
-    $('addHotelBtn').onclick=addHotel;
-    $('meView').querySelectorAll('[data-toggle-hotel]').forEach(function(head){
-      head.addEventListener('click', function(e){
-        if(e.target.closest('[data-hotel-del]')) return;
-        const hn=head.dataset.toggleHotel;
-        const node=head.closest('.hotel-node');
-        if(node.classList.contains('open')){ node.classList.remove('open'); delete expandedHotels[hn]; }
-        else{ node.classList.add('open'); expandedHotels[hn]=1; }
-      });
-    });
-    $('meView').querySelectorAll('[data-hotel-del]').forEach(function(b){
-      b.onclick=function(){ removeHotel(b.dataset.hotelDel); };
-    });
-    $('meView').querySelectorAll('[data-add-hall]').forEach(function(b){
-      b.onclick=function(){ addHall(b.dataset.addHall); };
-    });
-    $('meView').querySelectorAll('[data-hall-del]').forEach(function(b){
-      b.onclick=function(){ const p=b.dataset.hallDel.split('|'); removeHall(p[0], p.slice(1).join('|')); };
-    });
-    $('meView').querySelectorAll('[data-add-planner]').forEach(function(b){
-      b.onclick=function(){ addHallPlanner(b.dataset.addPlanner); };
-    });
-    $('meView').querySelectorAll('[data-planner-del]').forEach(function(b){
-      b.onclick=function(){ const p=b.dataset.plannerDel.split('|'); removeHallPlanner(p[0], p.slice(1).join('|')); };
-    });
-    // 回车提交
-    $('meView').querySelectorAll('[data-hall-add]').forEach(function(inp){
-      inp.addEventListener('keydown', function(e){ if(e.key==='Enter') addHall(inp.dataset.hallAdd); });
-    });
-    $('meView').querySelectorAll('[data-planner-add]').forEach(function(inp){
-      inp.addEventListener('keydown', function(e){ if(e.key==='Enter') addHallPlanner(inp.dataset.plannerAdd); });
-    });
-    initDragSort('photoList', savePhotoOrder);
+  if($('exportAllBtn')){
     $('exportAllBtn').onclick=function(){ exportExcel('all'); };
     $('exportMonthBtn').onclick=function(){ exportExcel('month'); };
     $('exportIcsBtn').onclick=exportICS;
@@ -1988,6 +1901,169 @@ function renderMe(){
   };
   $('logoutBtn').onclick=function(){ doLogout(); };
 }
+/* ============ 管理中心（管理页：账号/摄影师/酒店并列） ============ */
+let manageSub=null;   // null=主页 | accounts | photos | hotels
+
+function refreshCurrentView(){
+  if(activeTab==='me') renderMe();
+  else if(activeTab==='manage') renderManageSub();
+}
+
+function renderManage(){
+  const masterLike=isMasterLike();
+  let html='<div class="manage-title">管理中心</div>';
+  html+='<div class="manage-sub">账号、摄影师、酒店资料统一在此维护</div>';
+  if(!masterLike){
+    html+='<div class="readonly-note" style="margin-top:10px">仅主账号可管理账号、摄影师与酒店</div>';
+    $('manageView').innerHTML=html;
+    return;
+  }
+  html+='<div class="mgr-grid">';
+  html+='<div class="mgr-card" data-mgr="accounts"><div class="mgr-ic">👤</div><div class="mgr-t">账号管理</div><div class="mgr-d">添加 / 编辑子账号，绑定微信</div><span class="mgr-arr">›</span></div>';
+  html+='<div class="mgr-card" data-mgr="photos"><div class="mgr-ic">📷</div><div class="mgr-t">摄影师管理</div><div class="mgr-d">维护摄影师名单与排序</div><span class="mgr-arr">›</span></div>';
+  html+='<div class="mgr-card" data-mgr="hotels"><div class="mgr-ic">🏨</div><div class="mgr-t">酒店管理</div><div class="mgr-d">酒店 → 厅 → 策划师目录树</div><span class="mgr-arr">›</span></div>';
+  html+='<div class="mgr-card" data-mgr="plaza"><div class="mgr-ic">☷</div><div class="mgr-t">留言广场</div><div class="mgr-d">浏览主题、发布言论与评论</div><span class="mgr-arr">›</span></div>';
+  html+='</div>';
+  $('manageView').innerHTML=html;
+  $('manageView').querySelectorAll('[data-mgr]').forEach(function(card){
+    card.onclick=function(){
+      const v=card.dataset.mgr;
+      if(v==='plaza') switchTab('plaza');
+      else switchManageSub(v);
+    };
+  });
+}
+
+function switchManageSub(v){ manageSub=v; renderManageSub(); }
+
+function renderManageSub(){
+  if(!manageSub){ renderManage(); return; }
+  const titles={accounts:'账号管理',photos:'摄影师管理',hotels:'酒店管理'};
+  let html='<div class="detail-toolbar">';
+  html+='<button class="back" id="mgrBackBtn">‹ 返回管理中心</button>';
+  html+='<span class="mgr-sub-title">'+titles[manageSub]+'</span>';
+  html+='</div>';
+  html+='<div id="mgrSubBody"></div>';
+  $('manageView').innerHTML=html;
+  $('mgrBackBtn').onclick=function(){ manageSub=null; renderManage(); };
+  const body=$('mgrSubBody');
+  if(manageSub==='accounts') renderAccountsManage(body);
+  else if(manageSub==='photos') renderPhotosManage(body);
+  else if(manageSub==='hotels') renderHotelsManage(body);
+}
+
+function renderAccountsManage(host){
+  const mid=getCurrentMasterId();
+  const subs=DB.getUsers().filter(function(x){ return x.role==='sub' && (x.ownerId===mid); });
+  let html='<div class="me-row"><span class="lbl small">点击子账号可编辑信息，✕ 删除</span></div>';
+  if(subs.length){
+    html+='<div class="chip-list">';
+    subs.forEach(function(sub){
+      html+='<div class="chip-item" data-sub-edit="'+esc(sub.id)+'"><span class="drag">👤</span>'+esc(sub.nickname||sub.username)+(sub.wechat&&sub.wechat.phone?'<span class="val small" style="margin-left:4px">微信</span>':'')+' <button class="x" data-sub-del="'+esc(sub.id)+'">✕</button></div>';
+    });
+    html+='</div>';
+  }else{
+    html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无子账号</span></div>';
+  }
+  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px" id="addSubBtn">＋ 添加子账号</button>';
+  host.innerHTML=html;
+  $('addSubBtn').onclick=function(){ openSubAccountModal('add'); };
+  host.querySelectorAll('[data-sub-edit]').forEach(function(b){
+    b.onclick=function(e){ if(e.target.closest('[data-sub-del]')) return; openSubAccountModal('edit', b.dataset.subEdit); };
+  });
+  host.querySelectorAll('[data-sub-del]').forEach(function(b){
+    b.onclick=function(){ deleteSubAccount(b.dataset.subDel); };
+  });
+}
+
+function renderPhotosManage(host){
+  const mid=getCurrentMasterId();
+  const photos=mid?DB.getPhoto(mid):[];
+  let html='<div class="me-row"><span class="lbl small">长按拖拽可排序，顺序即选择顺序</span></div>';
+  html+='<div class="chip-list" id="photoList">';
+  photos.forEach(function(p){ html+='<div class="chip-item" draggable="true" data-photo="'+esc(p)+'"><span class="drag">☰</span>'+esc(p)+'<button class="x" data-photo-del="'+esc(p)+'">✕</button></div>'; });
+  html+='</div>';
+  html+='<div style="display:flex;gap:8px;margin-top:10px"><input id="newPhoto" placeholder="输入摄影师名称"><button class="btn btn-primary btn-sm" id="addPhotoBtn">添加</button></div>';
+  host.innerHTML=html;
+  $('addPhotoBtn').onclick=addPhotographer;
+  host.querySelectorAll('[data-photo-del]').forEach(function(b){
+    b.onclick=function(){ removePhotographer(b.dataset.photoDel); };
+  });
+  initDragSort('photoList', savePhotoOrder);
+}
+
+function renderHotelsManage(host){
+  const mid=getCurrentMasterId();
+  const hotels=mid?DB.getHotels(mid):[];
+  let html='<div class="me-row"><span class="lbl small">点击酒店名称展开/收起；按目录树维护：先加酒店，再在酒店下加厅，最后在厅下添加负责的策划师</span></div>';
+  html+='<div class="hotel-tree" id="hotelTree">';
+  hotels.forEach(function(h){
+    const hn=hotelName(h);
+    const halls=hotelHalls(h);
+    const openCls=expandedHotels[hn]?' open':'';
+    html+='<div class="hotel-node'+openCls+'">';
+    html+='<div class="hotel-head" data-toggle-hotel="'+esc(hn)+'"><span><span class="arr">▶</span> 🏨 '+esc(hn)+(halls.length?'<span class="hcount">'+halls.length+'厅</span>':'')+'</span><button class="x" data-hotel-del="'+esc(hn)+'">✕</button></div>';
+    html+='<div class="hotel-body">';
+    // 酒店共用策划师（一个酒店所有厅共用）
+    const sharedPs=[];
+    hotelPlanners(h).forEach(function(p){ if(sharedPs.indexOf(p)<0) sharedPs.push(p); });
+    hotelHalls(h).forEach(function(x){
+      hallPlanners(h, hallName(x)).forEach(function(p){ if(sharedPs.indexOf(p)<0) sharedPs.push(p); });
+    });
+    if(sharedPs.length){
+      html+='<div class="me-row" style="border:none;padding:2px 0"><span class="lbl small" style="color:var(--primary);font-weight:700">共用策划师（全厅通用）</span></div>';
+      html+='<div class="hall-planners">';
+      sharedPs.forEach(function(p){ html+='<span class="p-chip">'+esc(p)+'<button class="x" data-planner-del="'+esc(hn)+'|'+esc(p)+'">✕</button></span>'; });
+      html+='</div>';
+    }
+    html+='<div class="tree-add"><input data-planner-add="'+esc(hn)+'" placeholder="添加酒店共用策划师"><button class="btn btn-primary btn-sm" data-add-planner="'+esc(hn)+'">＋</button></div>';
+    if(halls.length){
+      halls.forEach(function(x){
+        const xName=hallName(x);
+        html+='<div class="hall-node"><div class="hall-head"><span>🪟 '+esc(xName)+'</span><button class="x" data-hall-del="'+esc(hn)+'|'+esc(xName)+'">✕</button></div>';
+        html+='</div>';
+      });
+    }
+    html+='<div class="tree-add"><input data-hall-add="'+esc(hn)+'" placeholder="该酒店下添加厅名"><button class="btn btn-primary btn-sm" data-add-hall="'+esc(hn)+'">＋</button></div>';
+    html+='</div></div>';
+  });
+  if(!hotels.length) html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无酒店，先添加第一个酒店吧</span></div>';
+  html+='</div>';
+  html+='<div class="tree-add"><input id="newHotel" placeholder="输入新酒店名称"><button class="btn btn-primary btn-sm" id="addHotelBtn">添加酒店</button></div>';
+  host.innerHTML=html;
+  $('addHotelBtn').onclick=addHotel;
+  host.querySelectorAll('[data-toggle-hotel]').forEach(function(head){
+    head.addEventListener('click', function(e){
+      if(e.target.closest('[data-hotel-del]')) return;
+      const hn=head.dataset.toggleHotel;
+      const node=head.closest('.hotel-node');
+      if(node.classList.contains('open')){ node.classList.remove('open'); delete expandedHotels[hn]; }
+      else{ node.classList.add('open'); expandedHotels[hn]=1; }
+    });
+  });
+  host.querySelectorAll('[data-hotel-del]').forEach(function(b){
+    b.onclick=function(){ removeHotel(b.dataset.hotelDel); };
+  });
+  host.querySelectorAll('[data-add-hall]').forEach(function(b){
+    b.onclick=function(){ addHall(b.dataset.addHall); };
+  });
+  host.querySelectorAll('[data-hall-del]').forEach(function(b){
+    b.onclick=function(){ const p=b.dataset.hallDel.split('|'); removeHall(p[0], p.slice(1).join('|')); };
+  });
+  host.querySelectorAll('[data-add-planner]').forEach(function(b){
+    b.onclick=function(){ addHallPlanner(b.dataset.addPlanner); };
+  });
+  host.querySelectorAll('[data-planner-del]').forEach(function(b){
+    b.onclick=function(){ const p=b.dataset.plannerDel.split('|'); removeHallPlanner(p[0], p.slice(1).join('|')); };
+  });
+  host.querySelectorAll('[data-hall-add]').forEach(function(inp){
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') addHall(inp.dataset.hallAdd); });
+  });
+  host.querySelectorAll('[data-planner-add]').forEach(function(inp){
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') addHallPlanner(inp.dataset.plannerAdd); });
+  });
+}
+
 let editingSubId=null;
 function openSubAccountModal(mode, subId){
   editingSubId=(mode==='edit')?(subId||null):null;
@@ -2016,7 +2092,7 @@ function saveSubAccount(){
     if(wx) sub.wechat=wx;
     DB.setUsers(users);
     addLog('编辑子账号', sub.username+(password?'（重置密码）':'')+(wx?'（更新微信信息）':''));
-    markDirty('users'); flushPush(); renderMe();
+    markDirty('users'); flushPush(); refreshCurrentView();
     closeModal('subAccountModal');
     toast('子账号已更新','ok');
   }else{
@@ -2031,7 +2107,7 @@ function saveSubAccount(){
     };
     const users=DB.getUsers(); users.push(sub); DB.setUsers(users);
     addLog('添加子账号', username+(wx?'（微信绑定）':''));
-    markDirty('users'); flushPush(); renderMe();
+    markDirty('users'); flushPush(); refreshCurrentView();
     closeModal('subAccountModal');
     toast('子账号已添加','ok');
   }
@@ -2045,7 +2121,7 @@ async function deleteSubAccount(id){
   addLog('删除子账号', sub.username);
   markDirty('users');
   cloudRemoveByField('users','id',id);
-  flushPush(); renderMe();
+  flushPush(); refreshCurrentView();
   toast('已删除','ok');
 }
 function addPhotographer(){
@@ -2057,7 +2133,7 @@ function addPhotographer(){
   list.push(name);
   DB.setPhoto(mid, list);
   addLog('添加摄影师', name);
-  markDirty('photographers'); flushPush(); refreshPhotographerFilter(); renderMe();
+  markDirty('photographers'); flushPush(); refreshPhotographerFilter(); refreshCurrentView();
   toast('已添加','ok');
 }
 async function removePhotographer(name){
@@ -2068,7 +2144,7 @@ async function removePhotographer(name){
   addLog('删除摄影师', name);
   markDirty('photographers');
   cloudRemoveByQuery('photographers', {name:name, _masterId:mid});
-  flushPush(); refreshPhotographerFilter(); renderMe();
+  flushPush(); refreshPhotographerFilter(); refreshCurrentView();
   toast('已删除','ok');
 }
 function addHotel(){
@@ -2080,7 +2156,7 @@ function addHotel(){
   list.push({id:uid('h'), name:name, halls:[], planners:[]});
   DB.setHotels(mid, list);
   addLog('添加酒店', name);
-  markDirty('hotels'); flushPush(); renderMe();
+  markDirty('hotels'); flushPush(); refreshCurrentView();
   toast('已添加','ok');
 }
 async function removeHotel(name){
@@ -2092,7 +2168,7 @@ async function removeHotel(name){
   addLog('删除酒店', name);
   markDirty('hotels');
   cloudRemoveByQuery('hotels', {name:name, _masterId:mid});
-  flushPush(); renderMe();
+  flushPush(); refreshCurrentView();
   toast('已删除','ok');
 }
 function addHall(hotelNameStr){
@@ -2109,7 +2185,7 @@ function addHall(hotelNameStr){
   DB.setHotels(mid, list);
   addLog('添加厅', hotelNameStr+' → '+name);
   expandedHotels[hotelNameStr]=1;
-  markDirty('hotels'); flushPush(); renderMe();
+  markDirty('hotels'); flushPush(); refreshCurrentView();
   toast('已添加厅','ok');
 }
 async function removeHall(hotelNameStr, hallNameStr){
@@ -2131,7 +2207,7 @@ async function removeHall(hotelNameStr, hallNameStr){
   DB.setHotels(mid, list);
   addLog('删除厅', hotelNameStr+' → '+hallNameStr);
   expandedHotels[hotelNameStr]=1;
-  markDirty('hotels'); flushPush(); renderMe();
+  markDirty('hotels'); flushPush(); refreshCurrentView();
   toast('已删除','ok');
 }
 function addHallPlanner(hotelNameStr){
@@ -2149,7 +2225,7 @@ function addHallPlanner(hotelNameStr){
   DB.setHotels(mid, list);
   addLog('添加策划师', hotelNameStr+' → '+name);
   expandedHotels[hotelNameStr]=1;
-  markDirty('hotels'); flushPush(); renderMe();
+  markDirty('hotels'); flushPush(); refreshCurrentView();
   toast('已添加策划师','ok');
 }
 async function removeHallPlanner(hotelNameStr, plannerName){
@@ -2170,7 +2246,7 @@ async function removeHallPlanner(hotelNameStr, plannerName){
   DB.setHotels(mid, list);
   addLog('删除策划师', hotelNameStr+' → '+plannerName);
   expandedHotels[hotelNameStr]=1;
-  markDirty('hotels'); flushPush(); renderMe();
+  markDirty('hotels'); flushPush(); refreshCurrentView();
   toast('已删除','ok');
 }
 function initDragSort(listId, onOrderChange){
@@ -2463,11 +2539,12 @@ function switchTab(tab){
   document.querySelectorAll('.tab-item').forEach(function(el){
     el.classList.toggle('active', el.dataset.tab===tab);
   });
-  ['schedule','plaza','me'].forEach(function(t){
+  ['schedule','plaza','manage','me'].forEach(function(t){
     $('tab-'+t).classList.toggle('hidden', t!==tab);
   });
   if(tab==='schedule'){ renderCalendar(); renderScheduleList(); }
   if(tab==='plaza'){ renderPlaza(); }
+  if(tab==='manage'){ renderManage(); }
   if(tab==='me'){ renderMe(); }
 }
 
