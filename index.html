@@ -3317,7 +3317,15 @@ async function pullAllToLocal(force){
   function mergeById(local, cloud){
     const by={};
     (local||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
-    (cloud||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
+    (cloud||[]).forEach(function(x){
+      if(x&&x.id){
+        const cur=by[x.id];
+        /* 同 id 多份（跨身份 add 残留）时取 _syncAt/updatedAt 最新一份，避免旧数据覆盖新统计 */
+        if(!cur || (x._syncAt||x.updatedAt||'') >= (cur._syncAt||cur.updatedAt||'')){
+          by[x.id]=x;
+        }
+      }
+    });
     return Object.keys(by).map(function(k){ return by[k]; });
   }
   try{
@@ -3500,11 +3508,21 @@ async function pushCollection(name){
         const body=Object.assign({}, item);
         delete body._id;
         if(item._id){
-          /* users 集合：先删后建，规避跨身份 doc.set 静默失败（确保密码/登录统计等更新生效） */
+          /* users 集合：先删后建，规避跨身份 doc.set 静默失败；删除失败时读回验证，仍未生效则新增文档（拉取时最新版胜出） */
           if(name==='users'){
-            return col.doc(item._id).remove().then(function(){
-              return col.doc(item._id).set(body);
-            }).catch(function(){ return col.add(body); });
+            body._syncAt=new Date().toISOString();
+            const docRef=col.doc(item._id);
+            return docRef.remove().then(function(){
+              return docRef.set(body);
+            }).catch(function(){
+              return docRef.set(body);
+            }).then(function(){
+              return docRef.get().then(function(doc){
+                const d=doc&&doc.data?doc.data:{};
+                if(d && d._syncAt===body._syncAt) return null;
+                return col.add(body);
+              }).catch(function(){ return col.add(body); });
+            });
           }
           return col.doc(item._id).set(body).catch(function(){ return col.add(body); });
         }
