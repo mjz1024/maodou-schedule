@@ -2863,7 +2863,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>人员</label><select id="fPhotographer"></select></div>
         <div class="form-item"><label>副机位</label><select id="fSecond"></select></div>
         <div class="form-item"><label>下单日期</label><input id="fOrderDate" type="date"></div>
-        <div class="form-item"><label>拍摄日期 *</label><input id="fShootDate" type="date"></div>
+        <div class="form-item"><label>拍摄日期</label><input id="fShootDate" type="date"></div>
         <div class="form-item"><label>到场时间</label><input id="fArrival" type="time"></div>
         <div class="form-item"><label>总额（元）</label><input id="fTotal" type="number" min="0" step="0.01" placeholder="0"></div>
         <div class="form-item"><label>定金（元）</label><input id="fDeposit" type="number" min="0" step="0.01" placeholder="0"></div>
@@ -3485,11 +3485,15 @@ function renderCalendar(){
     if(s.shootDate){ countMap[s.shootDate]=(countMap[s.shootDate]||0)+1; }
   });
   const today=todayStr();
+  const unschedCount=scheds.filter(function(s){ return !s.shootDate; }).length;
   let html='<div class="calendar">';
   html+='<div class="cal-top">';
   html+='<div class="cal-nav"><button id="calPrev">‹</button><span class="cal-month" id="calMonthLabel">'+y+'年'+(m+1)+'月</span><button id="calNext">›</button></div>';
   html+='<button class="btn btn-ghost btn-sm" id="calToday">今天</button>';
   html+='</div>';
+  html+='<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+    '<button class="btn btn-ghost btn-sm" id="unschedBtn">📋 未排期订单（'+unschedCount+'）</button>'+
+    '</div>';
   html+='<div class="cal-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>';
   html+='<div class="cal-grid">';
   for(let i=0;i<startDow;i++){
@@ -3510,9 +3514,39 @@ function renderCalendar(){
   $('calPrev').onclick=function(){ calMonth--; if(calMonth<0){ calMonth=11; calYear--; } renderCalendar(); };
   $('calNext').onclick=function(){ calMonth++; if(calMonth>11){ calMonth=0; calYear++; } renderCalendar(); };
   $('calToday').onclick=function(){ const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth(); selectedDate=todayStr(); renderCalendar(); renderScheduleList(); };
+  $('unschedBtn').onclick=showUnschedModal;
   cont.querySelectorAll('.cal-day[data-date]').forEach(function(el){
     el.onclick=function(){ selectedDate=el.dataset.date; renderCalendar(); renderScheduleList(); };
   });
+}
+/* 未排期订单弹窗（无拍摄日期的订单） */
+function showUnschedModal(){
+  const list=DB.getSchedules().filter(function(s){ return !s.shootDate; });
+  const overlay=document.createElement('div');
+  overlay.className='modal-mask';
+  overlay.style.display='flex';
+  let html='<div class="modal"><div class="modal-head"><h3>未排期订单（'+list.length+'）</h3><button class="modal-close">✕</button></div><div class="modal-body">';
+  if(!list.length){
+    html+='<div class="empty-hint" style="padding:16px">暂无未排期订单</div>';
+  }else{
+    html+='<div class="sched-card-list">';
+    list.forEach(function(s){
+      html+='<div class="sched-card" data-id="'+esc(s.id)+'">'+
+        '<div class="sched-main"><div class="sched-client">'+esc(s.clientName)+'</div>'+
+        '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
+        '<div class="up-card-sub">下单 '+(s.orderDate||'未填')+' · 金额 ¥'+(s.totalAmount||0)+(s.note?' · '+esc(s.note):'')+'</div></div>'+
+        '<button class="btn btn-sm btn-ghost">补排期</button></div>';
+    });
+    html+='</div>';
+  }
+  html+='</div></div>';
+  overlay.innerHTML=html;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.modal-close').onclick=function(){ overlay.remove(); };
+  overlay.querySelectorAll('.sched-card').forEach(function(card){
+    card.onclick=function(){ overlay.remove(); openScheduleModal(card.dataset.id); };
+  });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 }
 
 /* ============ 档期：列表 ============ */
@@ -3639,7 +3673,7 @@ function openScheduleModal(id){
   $('fPhotographer').value=s?s.photographer||'':'';
   $('fSecond').value=s?s.secondPhotographer||'':'';
   $('fOrderDate').value=s?s.orderDate||'':'';
-  $('fShootDate').value=(s?s.shootDate:'')||selectedDate||todayStr();
+  $('fShootDate').value=(s?s.shootDate:'')||selectedDate||'';
   $('fArrival').value=s?s.arrivalTime||'':'';
   $('fTotal').value=s?(s.totalAmount||''):'';
   $('fDeposit').value=s?(s.deposit||''):'';
@@ -3785,12 +3819,14 @@ function saveSchedule(){
   const client=$('fClient').value.trim();
   const shoot=$('fShootDate').value;
   if(!client){ toast('请填写客户姓名','error'); return; }
-  if(!shoot){ toast('请选择拍摄日期','error'); return; }
+  // 拍摄日期可留空（未排期订单），其余字段均可免填
   const main=$('fPhotographer').value.trim(), second=$('fSecond').value.trim();
   if(main && main===second){ toast('主人员和副机位不能是同一人','error'); return; }
-  const occ=dayOccupiedNames(shoot, editingScheduleId);
-  if(main && occ[main]){ toast('「'+main+'」当天已有档期','error'); return; }
-  if(second && occ[second]){ toast('「'+second+'」当天已有档期','error'); return; }
+  if(shoot){
+    const occ=dayOccupiedNames(shoot, editingScheduleId);
+    if(main && occ[main]){ toast('「'+main+'」当天已有档期','error'); return; }
+    if(second && occ[second]){ toast('「'+second+'」当天已有档期','error'); return; }
+  }
   const mid=getCurrentMasterId();
   const now=new Date().toISOString();
   if(editingScheduleId){
