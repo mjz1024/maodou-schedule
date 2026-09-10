@@ -3576,13 +3576,16 @@ function startHeartbeat(){
   setInterval(async function(){
     if(!cloudOK||!navigator.onLine) return;
     if(pushing) return;
-    /* 唯一在线：云端在线记录指向其他设备 → 当前设备被顶出 */
+    /* 唯一在线：读取该账号最新一条在线记录，若指向其他设备 → 当前设备被顶出 */
     if(currentUser){
       try{
-        const doc=await cloudDB.collection('sessions').doc('on_'+currentUser.id).get().catch(function(){ return {data:null}; });
-        const raw=doc&&doc.data;
-        const od=(Array.isArray(raw)?raw[0]:raw)||null;
-        if(od && od.type==='online' && od.deviceId && od.deviceId!==DB.getDeviceId()){
+        const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(20).get();
+        const docs=res.data||[];
+        let latest=null, latestAt='';
+        docs.forEach(function(d){
+          if(d && d.loginAt && (!latestAt || d.loginAt>latestAt)){ latest=d; latestAt=d.loginAt; }
+        });
+        if(latest && latest.deviceId && latest.deviceId!==DB.getDeviceId()){
           toast('该账号已在其他设备登录，当前设备已退出','error');
           setTimeout(function(){ doLogout(); }, 1200);
           return;
@@ -5824,9 +5827,9 @@ async function loginComplete(user){
     await pushAllCollections();
     // 重新解析当前用户（云端可能更新了用户数据）
     currentUser=DB.getUsers().find(function(u2){ return u2.id===user.id; })||user;
-    // 唯一在线：登记当前设备为唯一在线端（同账号旧设备将被顶出）
+    // 唯一在线：登录即新增一条在线记录（最新记录所在设备为唯一在线端，旧设备将被顶出）
     try{
-      await cloudDB.collection('sessions').doc('on_'+user.id).set({
+      await cloudDB.collection('sessions').add({
         type:'online', userId:user.id, username:user.username,
         deviceId:DB.getDeviceId(), loginAt:new Date().toISOString()
       });
