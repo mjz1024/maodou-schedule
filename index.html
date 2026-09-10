@@ -3690,16 +3690,18 @@ async function loadDeviceList(){
     const onlines=Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
     let html='';
     if(!onlines.length){ html='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无在线设备记录</span></div>'; }
+    const isLatest=onlines.length>0 && onlines[0].deviceId===DB.getDeviceId();   // 本机是否最新登录（仅最新登录可强制退出其他设备）
     onlines.slice(0,8).forEach(function(d,i){
       const isMe=d.deviceId===DB.getDeviceId();
       const online=i<3;
       html+='<div class="dev-row">'+
         '<span class="dev-name">'+esc(d.deviceName||((d.deviceId||'未知设备').slice(0,18)))+'</span>'+
         '<span class="dev-time small">'+fmtTime(d.loginAt)+'</span>'+
-        '<span class="dev-status '+(isMe?'me':(online?'on':'off'))+'">'+(isMe?'本机':(online?'在线':'已下线'))+'</span>'+
-        (isMe||!online?'':'<button class="btn btn-ghost btn-sm" data-dev-kick="'+esc(d.deviceId)+'">退出</button>')+
+        '<span class="dev-status '+(isMe?'me':(online?'on':'off'))+'">'+(isMe?(isLatest?'本机(最新登录)':'本机'):(online?'在线':'已下线'))+'</span>'+
+        (isMe||!online||!isLatest?'':'<button class="btn btn-ghost btn-sm" data-dev-kick="'+esc(d.deviceId)+'">强制退出</button>')+
         '</div>';
     });
+    if(onlines.length>0 && !isLatest) html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">仅最新登录的设备可强制退出其他设备</span></div>';
     if(onlines.length>3) html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">仅最新 3 台为在线设备，其余自动下线</span></div>';
     host.innerHTML=html;
     host.querySelectorAll('[data-dev-kick]').forEach(function(b){
@@ -3707,14 +3709,28 @@ async function loadDeviceList(){
     });
   }catch(e){ host.innerHTML='<div class="me-row"><span class="lbl small" style="color:var(--text3)">设备列表加载失败</span></div>'; }
 }
-/* 退出指定设备：写入踢出指令（该设备数秒内被强制下线） */
+/* 强制退出指定设备：仅最新登录的设备有权限（写入踢出指令，该设备数秒内被强制下线） */
 async function sessionKick(deviceId){
   if(!currentUser) return;
-  const ok=await confirmBox('退出设备','确定让该设备退出登录吗？该设备将在数秒内被强制下线。');
+  try{
+    const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
+    const map={};
+    (res.data||[]).forEach(function(d){
+      if(d&&d.loginAt&&d.deviceId && (!map[d.deviceId] || d.loginAt>map[d.deviceId].loginAt)) map[d.deviceId]=d;
+    });
+    const onlines=Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+    const latest=onlines[0];
+    if(!latest || latest.deviceId!==DB.getDeviceId()){
+      toast('仅最新登录的设备可强制退出其他设备','error');
+      loadDeviceList();
+      return;
+    }
+  }catch(e){}
+  const ok=await confirmBox('强制退出设备','确定强制该设备退出登录吗？该设备将在数秒内被强制下线。');
   if(!ok) return;
   try{
     await cloudDB.collection('sessions').add({type:'kick', userId:currentUser.id, deviceId:deviceId, kickedAt:new Date().toISOString()});
-    toast('已发送退出指令，该设备即将下线','ok');
+    toast('已发送强制退出指令，该设备即将下线','ok');
     loadDeviceList();
   }catch(e){ toast('操作失败，请稍后重试','error'); }
 }
