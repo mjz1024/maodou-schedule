@@ -359,6 +359,13 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .me-row .val{font-size:14px;font-weight:600;text-align:right;word-break:break-all}
 .me-row .val.small{font-size:13px;font-weight:400}
 .chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.sub-table{width:100%;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:6px;background:var(--card-bg,var(--input-bg))}
+.sub-row{display:grid;grid-template-columns:1.15fr 1fr 1.35fr .85fr 34px;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer}
+.sub-row:last-child{border-bottom:none}
+.sub-row.sub-head{background:var(--input-bg);font-weight:700;color:var(--text3);font-size:12px;cursor:default}
+.sub-row:hover:not(.sub-head){background:var(--input-bg)}
+.sub-pwd{font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.sub-op{text-align:right}
 .chip-item{display:inline-flex;align-items:center;gap:6px;background:var(--input-bg);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;transition:background .15s}
 .chip-item:active{background:var(--primary-soft)}
 .chip-item .x{color:var(--danger);font-weight:800;font-size:14px}
@@ -5134,14 +5141,28 @@ function renderManageSub(){
   else if(manageSub==='myinfo') renderMyInfo(body);
 }
 
+function fmtLoginTime(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  const p=function(n){ return (n<10?'0':'')+n; };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function renderAccountsManage(host){
   const mid=getCurrentMasterId();
   const subs=DB.getUsers().filter(function(x){ return x.role==='sub' && (x.ownerId===mid); });
   let html='<div class="me-row"><span class="lbl small">点击子账号可编辑信息，✕ 删除</span></div>';
   if(subs.length){
-    html+='<div class="chip-list">';
+    html+='<div class="sub-table">';
+    html+='<div class="sub-row sub-head"><span>用户名</span><span>登录密码</span><span>上次登录时间</span><span>本月登录次数</span><span class="sub-op"></span></div>';
     subs.forEach(function(sub){
-      html+='<div class="chip-item" data-sub-edit="'+esc(sub.id)+'"><span class="drag">👤</span>'+esc(sub.nickname||sub.username)+(sub.wechat&&sub.wechat.phone?'<span class="val small" style="margin-left:4px">微信</span>':'')+' <button class="x" data-sub-del="'+esc(sub.id)+'">✕</button></div>';
+      const wxTxt=(sub.wechat&&(sub.wechat.nickname||sub.wechat.phone))?' <span class="val small" style="color:var(--primary)">微信</span>':'';
+      html+='<div class="sub-row" data-sub-edit="'+esc(sub.id)+'">'
+        +'<span>'+esc(sub.nickname||sub.username)+wxTxt+'</span>'
+        +'<span class="sub-pwd">'+esc(sub.password||'—')+'</span>'
+        +'<span class="small">'+fmtLoginTime(sub.lastLoginAt)+'</span>'
+        +'<span class="small">'+(sub.loginMonth===new Date().toISOString().slice(0,7)?(sub.monthLogins||0):0)+' 次</span>'
+        +'<span class="sub-op"><button class="x" data-sub-del="'+esc(sub.id)+'" title="删除">✕</button></span>'
+        +'</div>';
     });
     html+='</div>';
   }else{
@@ -5154,7 +5175,7 @@ function renderAccountsManage(host){
     b.onclick=function(e){ if(e.target.closest('[data-sub-del]')) return; openSubAccountModal('edit', b.dataset.subEdit); };
   });
   host.querySelectorAll('[data-sub-del]').forEach(function(b){
-    b.onclick=function(){ deleteSubAccount(b.dataset.subDel); };
+    b.onclick=function(e){ e.stopPropagation(); deleteSubAccount(b.dataset.subDel); };
   });
 }
 
@@ -5305,8 +5326,22 @@ async function deleteSubAccount(id){
   addLog('删除子账号', sub.username);
   markDirty('users');
   cloudRemoveByField('users','id',id);
+  await removeUserNestedCloud(id, sub.username);   // 彻底清理云端旧格式嵌套残留，防止删除后重复出现
   flushPush(); refreshCurrentView();
   toast('已删除','ok');
+}
+/* 删除云端 users 集合中旧格式嵌套文档（{data:[...]}）内含该账号的记录 */
+async function removeUserNestedCloud(id, username){
+  if(!cloudOK||!cloudDB) return;
+  try{
+    const res=await cloudDB.collection('users').limit(1000).get();
+    for(const d of (res.data||[])){
+      if(d && Array.isArray(d.data) && !d.id){
+        const has=d.data.some(function(u){ return u && (u.id===id||u.username===username); });
+        if(has){ await cloudDB.collection('users').doc(d._id).remove().catch(function(){}); }
+      }
+    }
+  }catch(e){ console.warn('[cloud] 清理子账号嵌套残留失败', e); }
 }
 function addPhotographer(){
   const name=$('newPhoto').value.trim();
@@ -5712,7 +5747,7 @@ async function handleLogin(){
       toast('已自动注册为主账号','ok');
     }else{
       if(user.password!==password){ toast('用户名或密码错误','error'); return; }
-      user.visitCount=(user.visitCount||0)+1;
+      recordUserLogin(user);
       user.loginMethod='password';
       DB.setUsers(users);
       markDirty('users');
@@ -5788,12 +5823,21 @@ async function pollQrLogin(){
     }
   }catch(e){ /* 轮询瞬时错误忽略 */ }
 }
+/* 记录登录统计：上次登录时间 + 本月登录次数 + 总访问次数 */
+function recordUserLogin(user){
+  const iso=new Date().toISOString();
+  const month=iso.slice(0,7);
+  user.lastLoginAt=iso;
+  if(user.loginMonth!==month){ user.loginMonth=month; user.monthLogins=1; }
+  else{ user.monthLogins=(user.monthLogins||0)+1; }
+  user.visitCount=(user.visitCount||0)+1;
+}
 async function doQrLoginUser(userId){
   try{
     if(cloudOK && navigator.onLine){ await pullAllToLocal(true); }
     const user=DB.getUsers().find(function(u){ return u.id===userId; });
     if(!user){ toast('未找到该账号，请刷新后重试','error'); startQrLogin(); return; }
-    user.visitCount=(user.visitCount||0)+1;
+    recordUserLogin(user);
     DB.setUsers(DB.getUsers());
     markDirty('users');
     await flushPush();
