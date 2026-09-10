@@ -4003,7 +4003,9 @@ function showUnschedModal(){
         '<div class="sched-main"><div class="sched-client">'+esc(s.clientName)+'</div>'+
         '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
         '<div class="up-card-sub">人员到场 '+(s.arrivalTime||'未填')+' · 金额 ¥'+(s.totalAmount||0)+(s.note?' · '+esc(s.note):'')+'</div></div>'+
-        '<button class="btn btn-sm btn-ghost">补排期</button></div>';
+        '<button class="btn btn-sm btn-ghost">补排期</button>'+
+        (isMasterLike()?'<button class="btn btn-sm btn-danger-ghost" data-del-id="'+esc(s.id)+'">删除</button>':'')+
+        '</div>';
     });
     html+='</div>';
   }
@@ -4013,6 +4015,13 @@ function showUnschedModal(){
   overlay.querySelector('.modal-close').onclick=function(){ overlay.remove(); };
   overlay.querySelectorAll('.sched-card').forEach(function(card){
     card.onclick=function(){ overlay.remove(); openScheduleModal(card.dataset.id); };
+  });
+  overlay.querySelectorAll('[data-del-id]').forEach(function(b){
+    b.onclick=async function(e){
+      e.stopPropagation();
+      const ok=await deleteSchedule(b.dataset.delId);
+      if(ok) overlay.remove();
+    };
   });
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 }
@@ -4539,6 +4548,7 @@ async function deleteSchedule(id){
   flushPush();
   renderAll();
   toast('已删除','ok');
+  return true;
 }
 async function toggleDelivered(id){
   const list=DB.getSchedules();
