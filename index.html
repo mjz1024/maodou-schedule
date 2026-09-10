@@ -514,7 +514,6 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
         <div class="form-item"><label>总额（元）</label><input id="fTotal" type="number" min="0" step="0.01" placeholder="0"></div>
         <div class="form-item"><label>定金（元）</label><input id="fDeposit" type="number" min="0" step="0.01" placeholder="0"></div>
         <div class="form-item"><label>尾款（自动计算）</label><input id="fBalance" type="text" readonly placeholder="总额 - 定金"></div>
-        <div class="form-item full"><label>备注</label><textarea id="fNote" placeholder="备注信息"></textarea></div>
         <div class="form-item full">
           <div class="check-row">
             <label class="check-label"><input id="fPickup" type="checkbox"> 接送</label>
@@ -523,6 +522,7 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
             <label class="check-label"><input id="fConfirmed" type="checkbox"> 已指定</label>
           </div>
         </div>
+        <div class="form-item full"><label>备注</label><textarea id="fNote" placeholder="备注信息"></textarea></div>
       </div>
       <datalist id="hotelList"></datalist>
     </div>
@@ -1815,8 +1815,8 @@ function renderMe(){
   html+='</div></div>';
 
   if(masterLike){
-    // 账号管理 / 摄影师管理 / 酒店管理 已移至底部「管理」页并列展示
-    html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、摄影师管理、酒店管理请到底部「管理」页操作</span></div>';
+    // 账号管理 / 人员管理 / 酒店管理 已移至底部「管理」页并列展示
+    html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、人员管理、酒店管理请到底部「管理」页操作</span></div>';
 
     // 数据
     html+='<div class="me-card'+(expandedMeCards.data?'':' collapsed')+'" data-me-card="data"><h3 class="me-card-head" data-toggle-me="data"><span>数据管理</span><span class="arr">▶</span></h3><div class="me-card-body">';
@@ -1914,15 +1914,14 @@ function renderManage(){
   let html='<div class="manage-title">管理中心</div>';
   html+='<div class="manage-sub">账号、摄影师、酒店资料统一在此维护</div>';
   if(!masterLike){
-    html+='<div class="readonly-note" style="margin-top:10px">仅主账号可管理账号、摄影师与酒店</div>';
+    html+='<div class="readonly-note" style="margin-top:10px">仅主账号可管理账号、人员与酒店</div>';
     $('manageView').innerHTML=html;
     return;
   }
   html+='<div class="mgr-grid">';
   html+='<div class="mgr-card" data-mgr="accounts"><div class="mgr-ic">👤</div><div class="mgr-t">账号管理</div><div class="mgr-d">添加 / 编辑子账号，绑定微信</div><span class="mgr-arr">›</span></div>';
-  html+='<div class="mgr-card" data-mgr="photos"><div class="mgr-ic">📷</div><div class="mgr-t">摄影师管理</div><div class="mgr-d">维护摄影师名单与排序</div><span class="mgr-arr">›</span></div>';
+  html+='<div class="mgr-card" data-mgr="photos"><div class="mgr-ic">📷</div><div class="mgr-t">人员管理</div><div class="mgr-d">维护人员名单与排序</div><span class="mgr-arr">›</span></div>';
   html+='<div class="mgr-card" data-mgr="hotels"><div class="mgr-ic">🏨</div><div class="mgr-t">酒店管理</div><div class="mgr-d">酒店 → 厅 → 策划师目录树</div><span class="mgr-arr">›</span></div>';
-  html+='<div class="mgr-card" data-mgr="plaza"><div class="mgr-ic">☷</div><div class="mgr-t">留言广场</div><div class="mgr-d">浏览主题、发布言论与评论</div><span class="mgr-arr">›</span></div>';
   html+='</div>';
   $('manageView').innerHTML=html;
   $('manageView').querySelectorAll('[data-mgr]').forEach(function(card){
@@ -1938,7 +1937,7 @@ function switchManageSub(v){ manageSub=v; renderManageSub(); }
 
 function renderManageSub(){
   if(!manageSub){ renderManage(); return; }
-  const titles={accounts:'账号管理',photos:'摄影师管理',hotels:'酒店管理'};
+  const titles={accounts:'账号管理',photos:'人员管理',hotels:'酒店管理'};
   let html='<div class="detail-toolbar">';
   html+='<button class="back" id="mgrBackBtn">‹ 返回管理中心</button>';
   html+='<span class="mgr-sub-title">'+titles[manageSub]+'</span>';
@@ -1983,7 +1982,7 @@ function renderPhotosManage(host){
   html+='<div class="chip-list" id="photoList">';
   photos.forEach(function(p){ html+='<div class="chip-item" draggable="true" data-photo="'+esc(p)+'"><span class="drag">☰</span>'+esc(p)+'<button class="x" data-photo-del="'+esc(p)+'">✕</button></div>'; });
   html+='</div>';
-  html+='<div style="display:flex;gap:8px;margin-top:10px"><input id="newPhoto" placeholder="输入摄影师名称"><button class="btn btn-primary btn-sm" id="addPhotoBtn">添加</button></div>';
+  html+='<div style="display:flex;gap:8px;margin-top:10px"><input id="newPhoto" placeholder="输入人员名称"><button class="btn btn-primary btn-sm" id="addPhotoBtn">添加</button></div>';
   host.innerHTML=html;
   $('addPhotoBtn').onclick=addPhotographer;
   host.querySelectorAll('[data-photo-del]').forEach(function(b){
