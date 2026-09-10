@@ -4410,12 +4410,9 @@ function saveSchedule(){
     if(s3){
       const b=Object.assign({}, s3, cloudMeta());
       delete b._id; delete b._openid;
-      const col0=cloudDB.collection('schedules');
-      if(editingScheduleId){
-        col0.doc('s_'+sid).set(b).then(function(){ window.__errs=window.__errs||[]; window.__errs.push({t:'set-ok'}); }).catch(function(e){ window.__errs=window.__errs||[]; window.__errs.push({t:'set-fail', msg:String(e&&e.message||e).slice(0,120)}); cloudPushSingle(col0, b, 5); });
-      } else {
-        cloudPushSingle(col0, b, 5);
-      }
+      /* 直接 add 上云（实测可落库；doc.set 跨身份静默失败不可靠）。
+         同 id 多份文档由拉取合并 mergeById 按 _syncAt 取最新，保证读到最新数据 */
+      cloudPushSingle(cloudDB.collection('schedules'), b, 5);
     }
   }
   flushPush();
