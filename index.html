@@ -74,7 +74,18 @@ textarea{resize:vertical;min-height:80px}
 select option:disabled{color:#b5aea4;background:#f6f3ee}
 .list-date-title{font-size:13px;font-weight:700;color:var(--text2);padding:10px 4px 6px;display:flex;align-items:center;justify-content:space-between}
 #scheduleListView{width:100%;max-width:900px;margin:0 auto}
+/* 头像 */
+.me-avatar{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:18px;font-weight:800;overflow:hidden;vertical-align:middle}
+.me-avatar img{width:100%;height:100%;object-fit:cover}
+.auth-avatar{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:15px;font-weight:700;overflow:hidden;flex:none}
+.auth-avatar img{width:100%;height:100%;object-fit:cover}
+.auth-avatar.sm{width:26px;height:26px;font-size:12px}
 @media(min-width:1100px){#scheduleListView{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}#scheduleListView .list-date-title,#scheduleListView .delivered-divider{grid-column:1/-1}}
+/* 顶部滚动订单条（近一周订单，红字灰底） */
+.order-ticker{width:100%;max-width:900px;margin:8px auto 2px;background:#e8e8e8;border-radius:10px;overflow:hidden;position:relative;height:30px;line-height:30px;font-size:13px;color:#d32f2f;border:1px solid #ddd}
+.order-ticker-track{display:inline-block;white-space:nowrap;padding-left:100%;animation:orderScroll 28s linear infinite;will-change:transform}
+.order-ticker-track:hover{animation-play-state:paused}
+@keyframes orderScroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 /* 下两次订单日 */
 .upcoming-btn{margin:10px 4px 2px}
 .up-day{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px;margin-bottom:12px}
@@ -233,6 +244,19 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .mgr-arr{position:absolute;top:16px;right:14px;color:var(--text3);font-size:18px}
 .manage-back-row{margin-bottom:6px}
 .mgr-sub-title{font-size:16px;font-weight:800;color:var(--text1);margin-bottom:10px}
+/* 我的发布 / 信息管理 */
+.my-topic-item{border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;background:var(--input-bg)}
+.my-topic-item:active{opacity:.7}
+.my-topic-title{font-weight:700;font-size:13px;word-break:break-all}
+.my-topic-meta{font-size:11px;color:var(--text3);margin-top:3px}
+/* 超级管理者面板 */
+.super-panel{margin-top:16px;border:1px solid #d4a017;border-radius:14px;background:linear-gradient(135deg,rgba(212,160,23,.08),rgba(212,160,23,.02));padding:14px}
+.super-panel h3{font-size:15px;font-weight:800;color:#d4a017;margin-bottom:2px}
+.super-sub{font-size:11px;color:var(--text3);margin-bottom:10px}
+.super-row{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:9px}
+.super-id{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.super-info{font-size:11px;color:var(--text3);margin:4px 0 8px}
+.super-ops{display:flex;gap:6px;flex-wrap:wrap}
 .plaza-head h2{font-size:19px;font-weight:800}
 .plaza-sub{font-size:12px;color:var(--text3);margin-top:2px}
 .plaza-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;margin-bottom:11px;cursor:pointer;transition:transform .12s}
@@ -240,7 +264,9 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .plaza-title{font-size:16px;font-weight:800;margin-bottom:6px;word-break:break-all}
 .plaza-content{font-size:14px;color:var(--text2);white-space:pre-wrap;word-break:break-all;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .plaza-author{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
-.plaza-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.plaza-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;overflow:hidden}
+.plaza-avatar img{width:100%;height:100%;object-fit:cover}
+.plaza-avatar.sm{width:26px;height:26px;font-size:12px}
 .plaza-name{font-size:13px;font-weight:700}
 .plaza-time{font-size:12px;color:var(--text3)}
 .plaza-foot{display:flex;align-items:center;gap:14px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);font-size:12px;color:var(--text3)}
@@ -2740,6 +2766,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
   <div class="app-content">
     <!-- 档期 -->
     <div class="tab-page" id="tab-schedule">
+      <div class="order-ticker" id="orderTicker"><div class="order-ticker-track" id="orderTickerTrack"></div></div>
       <div class="view-switch">
         <button class="active" id="viewCalBtn">日历视图</button>
         <button id="viewListBtn">列表视图</button>
@@ -3180,7 +3207,15 @@ async function getAllDocs(name){
       batch=await col.skip(out.length).limit(100).get();
       out=out.concat(batch.data||[]);
     }
-    return out;
+    /* 兼容旧版 data 嵌套文档（早期 set({data:...}) 写入）：展开为顶层字段 */
+    return out.map(function(x){
+      if(x && x.data && typeof x.data==='object' && !x.id && !x.username && !x.name && !x.clientName && !x.date && !x.title && !x.masterId && !x.code){
+        const merged=Object.assign({}, x.data);
+        if(x._id) merged._id=x._id;
+        return merged;
+      }
+      return x;
+    });
   }catch(e){ console.warn('[cloud] 拉取失败', name, e); return []; }
 }
 
@@ -3244,7 +3279,7 @@ async function pullAllToLocal(force){
     }
     if(!skip('sessions')){
       const d=await getAllDocs('sessions');
-      const mine=d.filter(function(x){ return x&&x.type!=='qr_login'&&(x.username===currentUser.username||x.userId===currentUser.id); });
+      const mine=d.filter(function(x){ return x&&x.type!=='qr_login'&&x.type!=='online'&&(x.username===currentUser.username||x.userId===currentUser.id); });
       if(mine.length>0) DB.setSessions(mergeById(DB.getSessions(), mine));
     }
     if(!skip('photographers')){
@@ -3465,11 +3500,23 @@ function startWatchers(){
   });
 }
 
-/* 心跳：20s 拉取一次最新数据 */
+/* 心跳：20s 拉取一次最新数据；同时校验唯一在线（被顶出检测） */
 function startHeartbeat(){
   setInterval(async function(){
     if(!cloudOK||!navigator.onLine) return;
     if(pushing) return;
+    /* 唯一在线：云端在线记录指向其他设备 → 当前设备被顶出 */
+    if(currentUser){
+      try{
+        const doc=await cloudDB.collection('sessions').doc('on_'+currentUser.id).get().catch(function(){ return {data:null}; });
+        const od=doc&&doc.data;
+        if(od && od.type==='online' && od.deviceId && od.deviceId!==DB.getDeviceId()){
+          toast('该账号已在其他设备登录，当前设备已退出','error');
+          setTimeout(function(){ doLogout(); }, 1200);
+          return;
+        }
+      }catch(e){}
+    }
     const before=JSON.stringify({
       s:DB.getSchedules().map(function(x){return x.updatedAt||x.id;}).sort(),
       p:DB.getPlazaTopics().map(function(x){return x.id;}).sort(),
@@ -3518,8 +3565,21 @@ function initCalDates(){
     calYear=now.getFullYear(); calMonth=now.getMonth();
   }
 }
+function renderTicker(){
+  const track=$('orderTickerTrack'); if(!track) return;
+  const today=todayStr();
+  const end=fmtDate(addDays(new Date(),7));
+  const scheds=DB.getSchedules().filter(function(s){ return s.shootDate && s.shootDate>=today && s.shootDate<=end; })
+    .sort(function(a,b){ return a.shootDate<b.shootDate?-1:1; });
+  if(!scheds.length){ track.textContent='近一周暂无订单'; track.style.color='#999'; return; }
+  track.style.color='';
+  track.innerHTML=esc(scheds.map(function(s){
+    return (s.shootDate||'').slice(5)+' '+s.clientName+(s.hotel?'·'+s.hotel:'')+(s.photographer?'【'+s.photographer+'】':'');
+  }).join('　·　'));
+}
 function renderCalendar(){
   initCalDates();
+  renderTicker();
   const cont=$('calendarView');
   const y=calYear, m=calMonth;
   const first=new Date(y,m,1);
@@ -4077,6 +4137,36 @@ function topicCatName(k){
   return c?c.name:(k==='fun'?'📢 供求信息':'📸 摄影师区');
 }
 function roleName(r){ return r==='master'?'主账号':(r==='admin'?'管理员':'子账号'); }
+/* 更新当前用户资料（头像/签名），自动同步云端 */
+function updateMeUser(patch){
+  if(!currentUser) return;
+  const users=DB.getUsers();
+  const i=users.findIndex(function(x){ return x.id===currentUser.id; });
+  if(i<0) return;
+  users[i]=Object.assign({}, users[i], patch, {updatedAt:new Date().toISOString()});
+  currentUser=Object.assign({}, currentUser, patch);
+  DB.setUsers(users);
+  markDirty('users');
+  flushPush();
+  const sess=DB.getSession();
+  if(sess&&sess.currentUser){ sess.currentUser.nickname=users[i].nickname||users[i].username; DB.setSession(sess); }
+}
+function compressImage(file, cb){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const max=256; let w=img.width, h=img.height;
+      if(w>max||h>max){ const r=Math.min(max/w, max/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cb(cv.toDataURL('image/jpeg',0.82));
+    };
+    img.onerror=function(){ cb(e.target.result); };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 function canDeletePlaza(item){
   if(!currentUser) return false;
   if(isMasterLike()) return true;
@@ -4215,6 +4305,11 @@ function stopVoiceRecord(){
   if(plazaRec&&plazaRec.state!=='inactive'){ try{ plazaRec.stop(); }catch(e){} }
 }
 /* ---- 广场渲染 ---- */
+function avatarHtmlOf(av, name, extraCls){
+  const cls='plaza-avatar'+(extraCls?' '+extraCls:'');
+  if(av) return '<div class="'+cls+'"><img src="'+esc(av)+'" alt=""></div>';
+  return '<div class="'+cls+'">'+esc((name||'匿').charAt(0))+'</div>';
+}
 function topicCardHtml(t){
   const author=t.authorName||t.authorUsername||'匿名';
   const cnt=commentCount(t.id);
@@ -4223,7 +4318,7 @@ function topicCardHtml(t){
     '<div class="plaza-content">'+esc(renderContentFor(t, t.content))+'</div>'+
     topicMediaBadge(t)+
     '<div class="plaza-author">'+
-    '<div class="plaza-avatar">'+esc((t.authorName||t.authorUsername||'匿').charAt(0))+'</div>'+
+    avatarHtmlOf(t.authorAvatar, t.authorName||t.authorUsername)+
     '<span class="plaza-name">'+esc(author)+'</span>'+
     '<span class="role-badge '+(t.authorRole||'sub')+'">'+roleName(t.authorRole)+'</span>'+
     '<span class="plaza-time">'+fmtTime(t.createdAt)+'</span>'+
@@ -4301,7 +4396,7 @@ async function renderTopicDetail(id){
     mediaBlockHtml(t.audio)+
     mediaBlockHtml(t.voice)+
     '<div class="plaza-author">'+
-    '<div class="plaza-avatar">'+esc((t.authorName||t.authorUsername||'匿').charAt(0))+'</div>'+
+    avatarHtmlOf(t.authorAvatar, t.authorName||t.authorUsername)+
     '<span class="plaza-name">'+esc(t.authorName||t.authorUsername||'匿名')+'</span>'+
     '<span class="role-badge '+(t.authorRole||'sub')+'">'+roleName(t.authorRole)+'</span>'+
     '<span class="plaza-time">'+fmtTime(t.createdAt)+'</span>'+
@@ -4325,7 +4420,7 @@ async function renderTopicDetail(id){
     let ch='';
     comments.forEach(function(c){
       ch+='<div class="comment-item">'+
-        '<div class="plaza-avatar" style="width:26px;height:26px;font-size:12px">'+esc((c.authorName||c.authorUsername||'匿').charAt(0))+'</div>'+
+        avatarHtmlOf(c.authorAvatar, c.authorName||c.authorUsername, 'sm')+
         '<div class="cmt-body">'+
         '<div class="cmt-head"><span class="plaza-name">'+esc(c.authorName||c.authorUsername||'匿名')+'</span><span class="role-badge '+(c.authorRole||'sub')+'">'+roleName(c.authorRole)+'</span><span class="plaza-time">'+fmtTime(c.createdAt)+'</span>'+
         (canDeletePlaza(c)?'<button class="cmt-del" data-cid="'+esc(c.id)+'">删除</button>':'')+
@@ -4386,6 +4481,7 @@ async function submitTopic(){
     images:[], audio:null, voice:null,
     authorId:currentUser.id, authorUsername:currentUser.username,
     authorName:currentUser.nickname||currentUser.username,
+    authorAvatar:currentUser.avatar||'',
     authorRole:currentUser.role,
     createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
   };
@@ -4434,6 +4530,7 @@ async function submitComment(){
     images:[], audio:null, voice:null,
     authorId:currentUser.id, authorUsername:currentUser.username,
     authorName:currentUser.nickname||currentUser.username,
+    authorAvatar:currentUser.avatar||'',
     authorRole:currentUser.role,
     createdAt:new Date().toISOString()
   };
@@ -4500,8 +4597,10 @@ function renderMe(){
 
   // 账号信息（默认展开）
   html+='<div class="me-card'+(expandedMeCards.acct?'':' collapsed')+'" data-me-card="acct"><h3 class="me-card-head" data-toggle-me="acct"><span>账号信息</span><span class="arr">▶</span></h3><div class="me-card-body">';
+  html+='<div class="me-row"><span class="lbl">头像</span><span class="val"><span class="me-avatar" id="meAvatar">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc((u.nickname||u.username||'?').slice(0,1)))+'</span><button class="btn btn-ghost btn-sm" id="avatarBtn" style="margin-left:8px">更换头像</button><input type="file" id="avatarFile" accept="image/*" class="hidden"></span></div>';
   html+='<div class="me-row"><span class="lbl">昵称</span><span class="val">'+esc(u.nickname||u.username)+'</span></div>';
   html+='<div class="me-row"><span class="lbl">用户名</span><span class="val">'+esc(u.username)+'</span></div>';
+  html+='<div class="me-row"><span class="lbl">签名</span><span class="val small" id="meSignature">'+(u.signature?esc(u.signature):'<span style="color:var(--text3)">未设置</span>')+' <button class="btn btn-ghost btn-sm" id="sigBtn" style="margin-left:6px">设置</button></span></div>';
   html+='<div class="me-row"><span class="lbl">登录方式</span><span class="val small">'+(u.loginMethod==='wechat'?(esc(u.wechat&&u.wechat.nickname||'')+'（微信）'):'账号密码')+'</span></div>';
   if(u.wechat && (u.wechat.nickname||u.wechat.phone)) html+='<div class="me-row"><span class="lbl">微信绑定</span><span class="val small">'+(u.wechat.nickname?esc(u.wechat.nickname)+' ':'')+(u.wechat.phone?esc(u.wechat.phone):'')+'</span></div>';
   html+='<div class="me-row"><span class="lbl">角色</span><span class="val"><span class="role-badge '+(u.role||'sub')+'">'+roleName(u.role)+'</span></span></div>';
@@ -4519,12 +4618,27 @@ function renderMe(){
 
   // 提醒
   html+='<div class="me-card'+(expandedMeCards.reminder?'':' collapsed')+'" data-me-card="reminder"><h3 class="me-card-head" data-toggle-me="reminder"><span>拍摄提醒</span><span class="arr">▶</span></h3><div class="me-card-body">';
-  html+='<div class="me-row"><span class="lbl">提前一天提醒明日拍摄</span><div class="switch'+(s.reminder?' on':'')+'" id="reminderSwitch"></div></div>';
+  html+='<div class="me-row"><span class="lbl">提前两日提醒拍摄（每日一次）</span><div class="switch'+(s.reminder!==false?' on':'')+'" id="reminderSwitch"></div></div>';
   html+='</div></div>';
 
   if(masterLike){
     // 账号管理 / 人员管理 / 酒店管理 已移至底部「管理」页并列展示
     html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、人员管理、酒店管理请到底部「管理」页操作</span></div>';
+
+    // 我的发布
+    const myTopics=DB.getPlazaTopics().filter(function(t){ return t.authorId===currentUser.id; }).sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+    const myCmtN=DB.getPlazaComments().filter(function(c){ return c.authorId===currentUser.id; }).length;
+    html+='<div class="me-card'+(expandedMeCards.mypub?'':' collapsed')+'" data-me-card="mypub"><h3 class="me-card-head" data-toggle-me="mypub"><span>我的发布（'+myTopics.length+' 主题 · '+myCmtN+' 评论）</span><span class="arr">▶</span></h3><div class="me-card-body">';
+    if(myTopics.length){
+      myTopics.slice(0,8).forEach(function(t){
+        const cat=(PLAZA_CATS.find(function(c){ return c.key===(t.category||'photo'); })||{}).name||'';
+        html+='<div class="my-topic-item" data-mypub="'+esc(t.id)+'"><div class="my-topic-title">'+esc(t.title)+'</div><div class="my-topic-meta">'+esc(cat)+' · '+fmtTime(t.createdAt)+' · 💬 '+commentCount(t.id)+' 条评论</div></div>';
+      });
+      html+='<button class="btn btn-ghost btn-sm" id="myPubAllBtn" style="margin-top:8px">查看全部（信息管理）</button>';
+    }else{
+      html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">你还没有发布过广场主题</span></div>';
+    }
+    html+='</div></div>';
 
     // 数据
     html+='<div class="me-card'+(expandedMeCards.data?'':' collapsed')+'" data-me-card="data"><h3 class="me-card-head" data-toggle-me="data"><span>数据管理</span><span class="arr">▶</span></h3><div class="me-card-body">';
@@ -4591,8 +4705,35 @@ function renderMe(){
     if(on && 'Notification' in window && Notification.permission!=='granted'){
       Notification.requestPermission();
     }
-    renderMe(); toast(on?'已开启明日拍摄提醒':'已关闭提醒','ok');
+    renderMe(); toast(on?'已开启拍摄提醒':'已关闭提醒','ok');
   };
+  if($('avatarBtn')){
+    $('avatarBtn').onclick=function(){ $('avatarFile').click(); };
+    $('avatarFile').onchange=function(e){
+      const f=e.target.files&&e.target.files[0]; if(!f) return;
+      compressImage(f, function(dataUrl){
+        updateMeUser({avatar:dataUrl});
+        toast('头像已更新','ok');
+      });
+      e.target.value='';
+    };
+  }
+  if($('sigBtn')){
+    $('sigBtn').onclick=function(){
+      const cur=currentUser.signature||'';
+      const v=window.prompt('设置个性签名（显示在广场帖子与评论中）', cur);
+      if(v!==null){ updateMeUser({signature:v.trim()}); renderMe(); toast('签名已更新','ok'); }
+    };
+  }
+  $('meView').querySelectorAll('[data-mypub]').forEach(function(el){
+    el.onclick=function(){
+      activeTopicId=el.dataset.mypub;
+      switchTab('plaza');
+      show('plazaDetailView'); hide('plazaListView');
+      renderTopicDetail(activeTopicId);
+    };
+  });
+  if($('myPubAllBtn')) $('myPubAllBtn').onclick=function(){ manageSub='myinfo'; switchTab('manage'); renderManageSub(); };
   if($('exportAllBtn')){
     $('exportAllBtn').onclick=function(){ exportExcel('all'); };
     $('exportMonthBtn').onclick=function(){ exportExcel('month'); };
@@ -4615,8 +4756,150 @@ function renderMe(){
   };
   $('logoutBtn').onclick=function(){ doLogout(); };
 }
-/* ============ 管理中心（管理页：账号/摄影师/酒店并列） ============ */
-let manageSub=null;   // null=主页 | accounts | photos | hotels
+/* ============ 管理中心（管理页：账号/摄影师/酒店/信息 并列） ============ */
+let manageSub=null;   // null=主页 | accounts | photos | hotels | myinfo
+function isSuperAdmin(){ return currentUser && currentUser.role==='super'; }
+
+/* 超级管理者面板：管理各主账号（禁止/删除/改动/封号/导出订单） */
+function renderSuperPanel(){
+  const host=$('superBody'); if(!host) return;
+  const masters=DB.getUsers().filter(function(u){ return u.role==='master'||u.role==='admin'; });
+  let html='';
+  if(!masters.length){ html='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无主账号</span></div>'; host.innerHTML=html; return; }
+  masters.forEach(function(m){
+    const schedN=DB.getSchedules().filter(function(s){ return s.ownerId===m.id; }).length;
+    const banned=!!m.banned;
+    html+='<div class="super-row">'+
+      '<div class="super-id">'+esc(m.username)+' <span class="role-badge master">'+(m.nickname||'')+'</span></div>'+
+      '<div class="super-info">档期 '+schedN+' 单'+(m.phone?' · '+esc(m.phone):'')+(banned?' · <span style="color:#d32f2f;font-weight:700">已封禁/禁止</span>':'')+'</div>'+
+      '<div class="super-ops">'+
+      '<button class="btn btn-ghost btn-sm" data-super="ban" data-id="'+esc(m.id)+'">'+(banned?'解禁':'禁止')+'</button>'+
+      '<button class="btn btn-ghost btn-sm" data-super="edit" data-id="'+esc(m.id)+'">改动</button>'+
+      '<button class="btn btn-ghost btn-sm" data-super="del" data-id="'+esc(m.id)+'">删除</button>'+
+      '<button class="btn btn-ghost btn-sm" data-super="export" data-id="'+esc(m.id)+'">导出订单</button>'+
+      '</div></div>';
+  });
+  host.innerHTML=html;
+  host.querySelectorAll('[data-super]').forEach(function(b){
+    b.onclick=function(){
+      const act=b.dataset.super, id=b.dataset.id;
+      const target=DB.getUsers().find(function(u){ return u.id===id; });
+      if(!target){ toast('未找到该账号','error'); return; }
+      if(act==='ban'){
+        const nb=!target.banned;
+        updateUserByAdmin(id,{banned:nb});
+        toast(nb?'已禁止「'+target.username+'」登录':'已解禁「'+target.username+'」','ok');
+        renderSuperPanel();
+      }else if(act==='edit'){
+        const nn=window.prompt('修改昵称', target.nickname||target.username);
+        if(nn!==null){
+          const np=window.prompt('重置密码（留空不修改）', '');
+          const patch={nickname:nn.trim()||target.username};
+          if(np) patch.password=np;
+          updateUserByAdmin(id,patch);
+          toast('已修改「'+target.username+'」资料','ok');
+          renderSuperPanel();
+        }
+      }else if(act==='del'){
+        (async function(){
+          const ok=await confirmBox('删除主账号','确定删除主账号「'+target.username+'」及其全部数据（档期/人员/酒店/设置）？此操作不可恢复！');
+          if(!ok) return;
+          deleteMasterAccount(id);
+        })();
+      }else if(act==='export'){
+        exportMasterOrders(id);
+      }
+    };
+  });
+}
+/* 超管修改主账号资料 */
+function updateUserByAdmin(id, patch){
+  const users=DB.getUsers();
+  const i=users.findIndex(function(x){ return x.id===id; });
+  if(i<0) return;
+  users[i]=Object.assign({}, users[i], patch, {updatedAt:new Date().toISOString()});
+  DB.setUsers(users);
+  markDirty('users'); flushPush();
+  addLog('超管修改账号', users[i].username);
+}
+/* 超管删除主账号（含其全部数据） */
+async function deleteMasterAccount(id){
+  const users=DB.getUsers();
+  const rest=users.filter(function(x){ return x.id!==id && !(x.role==='sub'&&x.ownerId===id); });
+  DB.setUsers(rest);
+  const sched=DB.getSchedules().filter(function(x){ return x.ownerId!==id; });
+  DB.setSchedules(sched);
+  DB.setPhoto(id, []);
+  DB.setHotels(id, []);
+  const settings=DB.getSettings(); if(settings[id]) delete settings[id]; DB.setSettings(settings);
+  ['users','schedules','photographers','hotels','settings','day_settings','operation_log'].forEach(function(c){ markDirty(c); });
+  await flushPush();
+  cloudRemoveByQuery('schedules',{ownerId:id});
+  cloudRemoveByQuery('day_settings',{masterId:id});
+  cloudRemoveByQuery('photographers',{_masterId:id});
+  cloudRemoveByQuery('hotels',{_masterId:id});
+  cloudRemoveByQuery('users',{id:id});
+  addLog('超管删除账号', id);
+  renderSuperPanel();
+  toast('已删除主账号及其数据','ok');
+}
+/* 超管导出指定主账号订单 */
+function exportMasterOrders(id){
+  const m=DB.getUsers().find(function(u){ return u.id===id; });
+  if(!m) return;
+  const scheds=DB.getSchedules().filter(function(s){ return s.ownerId===id; });
+  const data={app:'maodou-schedule', exportedAt:new Date().toISOString(), masterId:id, masterUsername:m.username, schedules:scheds};
+  const blob=new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='毛豆档期_'+m.username+'_订单_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  addLog('超管导出订单', m.username+' '+scheds.length+' 单');
+  toast('已导出「'+m.username+'」订单 '+scheds.length+' 条','ok');
+}
+
+/* 信息管理：本人发布的所有主题与评论 */
+function renderMyInfo(host){
+  const topics=DB.getPlazaTopics().filter(function(t){ return t.authorId===currentUser.id; })
+    .sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+  const comments=DB.getPlazaComments().filter(function(c){ return c.authorId===currentUser.id; })
+    .sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+  let html='<div class="me-row"><span class="lbl small">共发布 '+topics.length+' 个主题 · '+comments.length+' 条评论</span></div>';
+  if(!topics.length && !comments.length){
+    html+='<div class="empty-hint" style="padding:20px">还没有发布过任何内容</div>';
+    host.innerHTML=html; return;
+  }
+  if(topics.length){
+    html+='<div class="me-card"><h3 class="me-card-head">我的主题</h3><div class="me-card-body">';
+    topics.forEach(function(t){
+      const cat=(PLAZA_CATS.find(function(c){ return c.key===(t.category||'photo'); })||{}).name||'';
+      html+='<div class="my-topic-item" data-topic="'+esc(t.id)+'">'+
+        '<div class="my-topic-title">'+esc(t.title)+'</div>'+
+        '<div class="my-topic-meta">'+esc(cat)+' · '+fmtTime(t.createdAt)+' · 💬 '+commentCount(t.id)+' 条评论</div></div>';
+    });
+    html+='</div></div>';
+  }
+  if(comments.length){
+    html+='<div class="me-card"><h3 class="me-card-head">我的评论</h3><div class="me-card-body">';
+    comments.forEach(function(c){
+      const tp=DB.getPlazaTopics().find(function(t){ return t.id===c.topicId; });
+      html+='<div class="my-topic-item" data-topic="'+esc(c.topicId)+'">'+
+        '<div class="my-topic-title" style="font-weight:600">评论于「'+(tp?esc(tp.title):'已删除的主题')+'」</div>'+
+        '<div class="my-topic-meta">'+esc(c.content.slice(0,60))+' · '+fmtTime(c.createdAt)+'</div></div>';
+    });
+    html+='</div></div>';
+  }
+  host.innerHTML=html;
+  host.querySelectorAll('[data-topic]').forEach(function(el){
+    el.onclick=function(){
+      activeTopicId=el.dataset.topic;
+      switchTab('plaza');
+      show('plazaDetailView'); hide('plazaListView');
+      renderTopicDetail(activeTopicId);
+    };
+  });
+}
 
 function refreshCurrentView(){
   if(activeTab==='me') renderMe();
@@ -4636,7 +4919,11 @@ function renderManage(){
   html+='<div class="mgr-card" data-mgr="accounts"><div class="mgr-ic">👤</div><div class="mgr-t">账号管理</div><div class="mgr-d">添加 / 编辑子账号，绑定微信</div><span class="mgr-arr">›</span></div>';
   html+='<div class="mgr-card" data-mgr="photos"><div class="mgr-ic">📷</div><div class="mgr-t">人员管理</div><div class="mgr-d">维护人员名单与排序</div><span class="mgr-arr">›</span></div>';
   html+='<div class="mgr-card" data-mgr="hotels"><div class="mgr-ic">🏨</div><div class="mgr-t">酒店管理</div><div class="mgr-d">酒店 → 厅 → 策划师目录树</div><span class="mgr-arr">›</span></div>';
+  html+='<div class="mgr-card" data-mgr="myinfo"><div class="mgr-ic">📮</div><div class="mgr-t">信息管理</div><div class="mgr-d">我发布的所有主题与评论</div><span class="mgr-arr">›</span></div>';
   html+='</div>';
+  if(isSuperAdmin()){
+    html+='<div class="super-panel" id="superPanel"><h3>超级管理者面板</h3><div class="super-sub">管理所有主账号：禁止 / 删除 / 改动 / 封号 / 导出订单</div><div id="superBody"></div></div>';
+  }
   $('manageView').innerHTML=html;
   $('manageView').querySelectorAll('[data-mgr]').forEach(function(card){
     card.onclick=function(){
@@ -4645,13 +4932,14 @@ function renderManage(){
       else switchManageSub(v);
     };
   });
+  if(isSuperAdmin()) renderSuperPanel();
 }
 
 function switchManageSub(v){ manageSub=v; renderManageSub(); }
 
 function renderManageSub(){
   if(!manageSub){ renderManage(); return; }
-  const titles={accounts:'账号管理',photos:'人员管理',hotels:'酒店管理'};
+  const titles={accounts:'账号管理',photos:'人员管理',hotels:'酒店管理',myinfo:'信息管理'};
   let html='<div class="detail-toolbar">';
   html+='<button class="back" id="mgrBackBtn">‹ 返回管理中心</button>';
   html+='<span class="mgr-sub-title">'+titles[manageSub]+'</span>';
@@ -4663,6 +4951,7 @@ function renderManageSub(){
   if(manageSub==='accounts') renderAccountsManage(body);
   else if(manageSub==='photos') renderPhotosManage(body);
   else if(manageSub==='hotels') renderHotelsManage(body);
+  else if(manageSub==='myinfo') renderMyInfo(body);
 }
 
 function renderAccountsManage(host){
@@ -5194,16 +5483,16 @@ function startReminderLoop(){
 }
 function checkReminders(){
   if(!currentUser) return;
-  if(!masterSettings().reminder) return;
+  if(masterSettings().reminder===false) return;
   if(!('Notification' in window)||Notification.permission!=='granted') return;
-  const tomorrow=fmtDate(addDays(new Date(),1));
-  const key='ps_reminded_'+tomorrow;
+  const inTwoDays=fmtDate(addDays(new Date(),2));
+  const key='ps_reminded_'+inTwoDays;
   if(localStorage.getItem(key)) return;
-  const due=DB.getSchedules().filter(function(s){ return s.shootDate===tomorrow && !s.delivered; });
+  const due=DB.getSchedules().filter(function(s){ return s.shootDate===inTwoDays && !s.delivered; });
   if(due.length){
     try{
       const names=due.map(function(s){ return s.clientName+(s.arrivalTime?' '+s.arrivalTime:''); }).join('、');
-      new Notification('毛豆档期 · 明日拍摄提醒', {body:'明天有 '+due.length+' 单拍摄：'+names});
+      new Notification('毛豆档期 · 拍摄提醒', {body:'两天后（'+inTwoDays+'）有 '+due.length+' 单拍摄：'+names});
       localStorage.setItem(key,'1');
     }catch(e){}
   }
@@ -5383,6 +5672,13 @@ async function loginComplete(user){
     await pushAllCollections();
     // 重新解析当前用户（云端可能更新了用户数据）
     currentUser=DB.getUsers().find(function(u2){ return u2.id===user.id; })||user;
+    // 唯一在线：登记当前设备为唯一在线端（同账号旧设备将被顶出）
+    try{
+      await cloudDB.collection('sessions').doc('on_'+user.id).set({
+        type:'online', userId:user.id, username:user.username,
+        deviceId:DB.getDeviceId(), loginAt:new Date().toISOString()
+      });
+    }catch(e){ console.warn('[cloud] 在线登记失败', e); }
   }
   ensureSettingsShape();
   // 初始化日历到当前月
