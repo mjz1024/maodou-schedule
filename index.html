@@ -4348,8 +4348,12 @@ function saveSchedule(){
   if(main && main===second){ toast('主人员和副机位不能是同一人','error'); return; }
   if(shoot){
     const occ=dayOccupiedNames(shoot, editingScheduleId);
-    if(main && occ[main]){ toast('「'+main+'」当天已有档期','error'); return; }
-    if(second && occ[second]){ toast('「'+second+'」当天已有档期','error'); return; }
+    /* 仅当人员被修改时才做同日互斥检查：仅改备注/其他字段时不拦截 */
+    const origS=editingScheduleId?DB.getSchedules().find(function(x){return x.id===editingScheduleId;}):null;
+    const origMain=origS?(origS.photographer||''):'';
+    const origSecond=origS?(origS.secondPhotographer||''):'';
+    if(main && main!==origMain && occ[main]){ toast('「'+main+'」当天已有档期','error'); return; }
+    if(second && second!==origSecond && occ[second]){ toast('「'+second+'」当天已有档期','error'); return; }
   }
   const mid=getCurrentMasterId();
   autoCategorizeInputs(mid);   // 新输入的人员/酒店/厅/策划师自动归类入库，方便以后复用
