@@ -578,7 +578,7 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
    ================================================================ */
 const APP_VERSION = 'v31.0';
 const CLOUDBASE_ENV = 'mjz1024-d9gmd96afc2ffc3ad';
-const CLOUD_REGION = 'ap-guangzhou';
+const CLOUD_REGION = 'ap-shanghai';   // 环境实际创建区域（ap-shanghai）
 const THEME_ORDER = ['auto','champagne','pink','dark','blackgold'];
 const THEME_NAMES = {auto:'跟随系统', champagne:'香槟', pink:'粉色', dark:'深色', blackgold:'黑金'};
 const THEME_COLORS = {auto:'#8b93a3', champagne:'#b98a2f', pink:'#ec407a', dark:'#3b4252', blackgold:'#d4af37'};
@@ -759,6 +759,9 @@ async function initCloud(){
     cloudApp=cloudbase.init({env:CLOUDBASE_ENV, region:CLOUD_REGION});
     const auth=cloudApp.auth({persistence:'local'});
     await auth.signInAnonymously();
+    // SDK 在匿名登录未开通时会静默失败，这里主动校验登录态
+    const st=await auth.getLoginState();
+    if(!st){ throw new Error('匿名登录未开通，请到 CloudBase 控制台开启'); }
     cloudDB=cloudApp.database();
     cloudOK=true;
     setSyncState('busy');
@@ -770,6 +773,7 @@ async function initCloud(){
   }catch(e){
     console.warn('[cloud] 初始化失败:', e && e.message);
     cloudOK=false; setSyncState('off');
+    toast('云同步未连接：请检查 CloudBase 环境已开通「匿名登录」','error');
     return false;
   }
 }
