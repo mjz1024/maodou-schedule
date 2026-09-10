@@ -5058,7 +5058,9 @@ function renderSuperPanel(){
         superEditUser(id);
       }else if(act==='del'){
         (async function(){
-          const ok=await confirmBox('删除主账号','确定删除主账号「'+target.username+'」及其全部数据（档期/人员/酒店/设置/子账号）？此操作不可恢复！');
+          const schedN=DB.getSchedules().filter(function(s){ return s.ownerId===target.id; }).length;
+          const warn=schedN>0?'<span style="color:#d32f2f;font-weight:800">⚠️ 该账号有 '+schedN+' 条订单！</span>':'';
+          const ok=await confirmBox('删除主账号','确定删除主账号「'+target.username+'」？'+warn+'<br>将连同其全部数据（档期/人员/酒店/设置/子账号）一起删除，此操作不可恢复！');
           if(!ok) return;
           deleteMasterAccount(id);
         })();
