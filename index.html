@@ -301,6 +301,13 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .dev-status.on{background:rgba(46,204,113,.15);color:#2ecc71}
 .dev-status.off{background:rgba(180,180,180,.15);color:var(--text3)}
 .dev-status.me{background:rgba(212,160,23,.18);color:#d4a017}
+.person-pick{position:relative;display:flex;flex:1;min-width:0}
+.person-pop{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:220px;overflow-y:auto;background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:10px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.person-pop .pp-item{padding:9px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--border)}
+.person-pop .pp-item:last-child{border-bottom:none}
+.person-pop .pp-item:hover{background:rgba(212,160,23,.12)}
+.person-pop .pp-item.cur{color:#d4a017;font-weight:700}
+.person-pop .pp-item.off{color:var(--text3);opacity:.65}
 .role-badge.master{background:rgba(212,160,23,.15);color:#d4a017}
 .role-badge.sub{background:rgba(80,140,255,.15);color:#5b9bff}
 .super-sub{font-size:11px;color:var(--text3);margin-bottom:10px}
@@ -2956,8 +2963,8 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>酒店</label><input id="fHotel" list="dlHotel" placeholder="选择或输入新酒店" autocomplete="off"><datalist id="dlHotel"></datalist></div>
         <div class="form-item"><label>厅名</label><input id="fHall" list="dlHall" placeholder="选择或输入新厅名" autocomplete="off"><datalist id="dlHall"></datalist></div>
         <div class="form-item"><label>策划师</label><input id="fPlanner" list="dlPlanner" placeholder="选择或输入新策划师" autocomplete="off"><datalist id="dlPlanner"></datalist></div>
-        <div class="form-item"><label>人员</label><input id="fPhotographer" list="dlPhoto" placeholder="选择或输入新人员" autocomplete="off"><datalist id="dlPhoto"></datalist></div>
-        <div class="form-item"><label>副机位</label><input id="fSecond" list="dlSecond" placeholder="选择或输入" autocomplete="off"><datalist id="dlSecond"></datalist></div>
+        <div class="form-item"><label>人员</label><div class="person-pick"><input id="fPhotographer" placeholder="点击选择或输入新人员" autocomplete="off" style="flex:1"><div class="person-pop" id="photoPop" hidden></div></div><datalist id="dlPhoto"></datalist></div>
+        <div class="form-item"><label>副机位</label><div class="person-pick"><input id="fSecond" placeholder="点击选择或输入" autocomplete="off" style="flex:1"><div class="person-pop" id="secondPop" hidden></div></div><datalist id="dlSecond"></datalist></div>
         <div class="form-item"><label>下单日期</label><input id="fOrderDate" type="date"></div>
         <div class="form-item"><label>拍摄日期</label><input id="fShootDate" type="date"></div>
         <div class="form-item"><label>到场时间</label><input id="fArrival" type="time"></div>
@@ -4158,8 +4165,67 @@ function populateMainSelect(){
   // 人员下拉显示人员管理的全部数据（可直接输入新人员；已选可随时更改）
   setDatalistOptions($('fPhotographer'), 'dlPhoto', personNameList($('fPhotographer').value));
 }
+/* 主人员自定义下拉面板（解决移动端 datalist 不弹、已选后无法替选的问题） */
+function renderPhotoPop(filter){
+  const pop=$('photoPop'), input=$('fPhotographer');
+  if(!pop||!input) return;
+  const mid=getCurrentMasterId();
+  const people=DB.getPhoto(mid||'_default').slice();
+  const curVal=input.value.trim();
+  const dateStr=$('fShootDate').value;
+  const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const kw=(filter||'').toLowerCase();
+  let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
+  if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
+  if(!list.length){ pop.innerHTML='<div class="pp-item off">无匹配人员，可直接输入新名称</div>'; pop.hidden=false; return; }
+  pop.innerHTML=list.map(function(p){
+    const busy=!!occ[p] && p!==curVal;
+    return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp="'+esc(p)+'"'+(busy?' data-pp-off="1"':'')+'>'+
+      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">当天已占用</span>':'')+'</div>';
+  }).join('');
+  pop.hidden=false;
+  pop.querySelectorAll('[data-pp]').forEach(function(el){
+    el.onclick=function(){
+      if(el.dataset.ppOff){ toast('「'+el.dataset.pp+'」当天已有档期','error'); return; }
+      input.value=el.dataset.pp;
+      pop.hidden=true;
+      populateMainSelect();
+      populateSecondSelect();
+    };
+  });
+}
 function populateSecondSelect(){
   setDatalistOptions($('fSecond'), 'dlSecond', personNameList($('fSecond').value));
+}
+/* 副机位自定义下拉面板（排除主人员 + 当天互斥占用） */
+function renderSecondPop(filter){
+  const pop=$('secondPop'), input=$('fSecond');
+  if(!pop||!input) return;
+  const mid=getCurrentMasterId();
+  const people=DB.getPhoto(mid||'_default').slice();
+  const curVal=input.value.trim();
+  const mainVal=$('fPhotographer').value.trim();
+  const dateStr=$('fShootDate').value;
+  const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const kw=(filter||'').toLowerCase();
+  let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
+  if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
+  if(!list.length){ pop.innerHTML='<div class="pp-item off">无匹配人员，可直接输入新名称</div>'; pop.hidden=false; return; }
+  pop.innerHTML=list.map(function(p){
+    const busy=(!!occ[p] || (mainVal&&p===mainVal)) && p!==curVal;
+    return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp2="'+esc(p)+'"'+(busy?' data-pp2-off="1"':'')+'>'+
+      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+(mainVal&&p===mainVal?'已选为主人员':'当天已占用')+'</span>':'')+'</div>';
+  }).join('');
+  pop.hidden=false;
+  pop.querySelectorAll('[data-pp2]').forEach(function(el){
+    el.onclick=function(){
+      if(el.dataset.pp2Off){ toast('「'+el.dataset.pp2+'」'+(mainVal&&el.dataset.pp2===mainVal?'已选为主人员':'当天已有档期'),'error'); return; }
+      input.value=el.dataset.pp2;
+      pop.hidden=true;
+      populateSecondSelect();
+      populateMainSelect();
+    };
+  });
 }
 function populatePersonSelects(initMain, initSecond){
   if(initMain!==undefined) $('fPhotographer').value=initMain;
@@ -6390,8 +6456,12 @@ function bindEvents(){
   $('fTotal').addEventListener('input', updateBalance);
   $('fDeposit').addEventListener('input', updateBalance);
   $('fShootDate').addEventListener('change', function(){ populateMainSelect(); populateSecondSelect(); });
-  $('fPhotographer').addEventListener('input', function(){ populateSecondSelect(); });
-  $('fSecond').addEventListener('input', function(){ populateMainSelect(); });
+  $('fPhotographer').addEventListener('input', function(){ renderPhotoPop($('fPhotographer').value); populateSecondSelect(); });
+  $('fPhotographer').addEventListener('focus', function(){ renderPhotoPop(''); });
+  $('fPhotographer').addEventListener('blur', function(){ setTimeout(function(){ const p=$('photoPop'); if(p) p.hidden=true; }, 180); });
+  $('fSecond').addEventListener('input', function(){ renderSecondPop($('fSecond').value); populateMainSelect(); });
+  $('fSecond').addEventListener('focus', function(){ renderSecondPop(''); });
+  $('fSecond').addEventListener('blur', function(){ setTimeout(function(){ const p=$('secondPop'); if(p) p.hidden=true; }, 180); });
   $('fHotel').addEventListener('input', function(){ populateHotelChain(); });
   $('fHotel').addEventListener('change', function(){ if($('fHall').value||$('fPlanner').value){ $('fHall').value=''; $('fPlanner').value=''; } populateHotelChain(); });
   $('fHall').addEventListener('input', function(){ populateHotelChain(); });
