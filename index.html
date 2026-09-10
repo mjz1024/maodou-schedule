@@ -3665,7 +3665,11 @@ async function checkSessionLimit(){
   if(!cloudOK||!cloudDB||!currentUser) return;
   try{
     const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
-    const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+    const map={};
+    (res.data||[]).forEach(function(d){
+      if(d&&d.loginAt&&d.deviceId && (!map[d.deviceId] || d.loginAt>map[d.deviceId].loginAt)) map[d.deviceId]=d;
+    });
+    const onlines=Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
     const myIdx=onlines.findIndex(function(d){ return d.deviceId===DB.getDeviceId(); });
     if(myIdx>=3){
       toast('本账号同时在线已达 3 台，当前设备已被顶出','error');
@@ -3679,7 +3683,11 @@ async function loadDeviceList(){
   if(!cloudOK||!cloudDB||!currentUser){ host.innerHTML='<span class="lbl small" style="color:var(--text3)">离线状态，无法获取设备列表</span>'; return; }
   try{
     const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
-    const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+    const map={};
+    (res.data||[]).forEach(function(d){
+      if(d&&d.loginAt&&d.deviceId && (!map[d.deviceId] || d.loginAt>map[d.deviceId].loginAt)) map[d.deviceId]=d;
+    });
+    const onlines=Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
     let html='';
     if(!onlines.length){ html='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无在线设备记录</span></div>'; }
     onlines.slice(0,8).forEach(function(d,i){
@@ -3720,7 +3728,11 @@ function startHeartbeat(){
     if(currentUser){
       try{
         const res=await cloudDB.collection('sessions').where({type:'online', userId:currentUser.id}).limit(50).get();
-        const onlines=(res.data||[]).filter(function(d){ return d&&d.loginAt&&d.deviceId; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
+        const map={};
+        (res.data||[]).forEach(function(d){
+          if(d&&d.loginAt&&d.deviceId && (!map[d.deviceId] || d.loginAt>map[d.deviceId].loginAt)) map[d.deviceId]=d;
+        });
+        const onlines=Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.loginAt||'').localeCompare(a.loginAt||''); });
         const myIdx=onlines.findIndex(function(d){ return d.deviceId===DB.getDeviceId(); });
         if(myIdx>=3){
           toast('本账号同时在线已达 3 台，当前设备已被顶出','error');
