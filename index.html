@@ -3128,13 +3128,17 @@ async function pullAllToLocal(force){
   if(!cloudOK) return false;
   const skip=function(c){ return dirty.has(c); };
   try{
-    const usersD=await getAllDocs('users');
-    if(usersD.length>0) DB.setUsers(usersD.filter(function(x){return x&&x.id;}));
+    if(!skip('users')){
+      const usersD=await getAllDocs('users');
+      if(usersD.length>0) DB.setUsers(usersD.filter(function(x){return x&&x.id;}));
+    }
     const cloudUserIds={};
-    usersD.forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
+    DB.getUsers().forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
 
-    const schedD=await getAllDocs('schedules');
-    if(schedD.length>0) DB.setSchedules(schedD.filter(function(x){return x&&x.id;}));
+    if(!skip('schedules')){
+      const schedD=await getAllDocs('schedules');
+      if(schedD.length>0) DB.setSchedules(schedD.filter(function(x){return x&&x.id;}));
+    }
 
     if(!skip('settings')){
       const d=await getAllDocs('settings');
@@ -4623,15 +4627,17 @@ function importExcel(file){
       const mid=getCurrentMasterId();
       const now=new Date().toISOString();
       const scheds=DB.getSchedules();
-      let added=0;
+      let added=0, firstDate=null;
       rows.slice(1).forEach(function(r){
         const client=String(cell(r, idx['客户'])).trim();
         if(!client) return;
+        const shoot=excelDateToStr(cell(r,idx['拍摄日期']));
+        if(!firstDate && shoot) firstDate=shoot;
         scheds.push({
           id:uid('s'), clientName:client, hotel:String(cell(r,idx['酒店'])).trim(),
           hall:String(cell(r,idx['厅名'])).trim(), planner:String(cell(r,idx['策划师'])).trim(),
           photographer:String(cell(r,idx['摄影师'])).trim()||'', secondPhotographer:String(cell(r,idx['副机位'])).trim(),
-          orderDate:excelDateToStr(cell(r,idx['下单日期'])), shootDate:excelDateToStr(cell(r,idx['拍摄日期'])),
+          orderDate:excelDateToStr(cell(r,idx['下单日期'])), shootDate:shoot,
           arrivalTime:String(cell(r,idx['到场时间'])).trim(), totalAmount:num(cell(r,idx['总额'])),
           deposit:num(cell(r,idx['定金'])), note:String(cell(r,idx['备注'])).trim(),
           ownerId:mid, createdBy:currentUser.username, createdAt:now, updatedAt:now,
@@ -4641,6 +4647,11 @@ function importExcel(file){
       });
       DB.setSchedules(scheds);
       addLog('导入Excel', added+' 条');
+      // 导入后自动定位到首个拍摄日期，立即看到结果
+      if(firstDate){
+        const d=new Date(firstDate);
+        if(!isNaN(d.getTime())){ calYear=d.getFullYear(); calMonth=d.getMonth(); selectedDate=firstDate; }
+      }
       markDirty('schedules'); flushPush(); renderAll();
       toast('成功导入 '+added+' 条档期','ok');
     }catch(err){ toast('导入失败: '+err.message,'error'); }
