@@ -4450,10 +4450,6 @@ function topicCardHtml(t){
 function renderPlaza(){
   const cont=$('plazaListView');
   const topics=DB.getPlazaTopics().slice().sort(sortTopicsDesc);
-  if(!topics.length){
-    cont.innerHTML='<div class="empty-hint"><div class="big">☷</div>还没有主题，来发布第一条吧</div>';
-    return;
-  }
   let html='';
   PLAZA_CATS.forEach(function(cat){
     const list=topics.filter(function(t){ return (t.category||'photo')===cat.key; });
