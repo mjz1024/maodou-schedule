@@ -4358,13 +4358,10 @@ function saveSchedule(){
   const mid=getCurrentMasterId();
   autoCategorizeInputs(mid);   // 新输入的人员/酒店/厅/策划师自动归类入库，方便以后复用
   const now=new Date().toISOString();
-  window.__dbg2=window.__dbg2||[];
-  window.__dbg2.push({t:'P0', client:client, main:$('fPhotographer')?$('fPhotographer').value:'', second:$('fSecond')?$('fSecond').value:'', shoot:shoot, edit:editingScheduleId, fNote:$('fNote')?$('fNote').value:'NULL'});
-  console.log('[DBG-save] A fNote=', JSON.stringify($('fNote')?$('fNote').value:'NULL'), 'edit=', editingScheduleId);
   if(editingScheduleId){
     const list=DB.getSchedules();
     const s=list.find(function(x){return x.id===editingScheduleId;});
-    if(!s){ window.__dbg2.push({t:'P1-NOS' }); return; }
+    if(!s) return;
     Object.assign(s, {
       clientName:client, hotel:$('fHotel').value.trim(), hall:$('fHall').value.trim(),
       planner:$('fPlanner').value.trim(), photographer:$('fPhotographer').value.trim(),
@@ -4375,10 +4372,7 @@ function saveSchedule(){
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), updatedAt:now
     });
-    window.__dbg2.push({t:'P2-assign', fNote:$('fNote')?$('fNote').value:'NULL', sNote:s.note});
     DB.setSchedules(list);
-    window.__dbg2.push({t:'P3-afterSet', note:(DB.getSchedules().find(function(x){return x.id===editingScheduleId;})||{}).note});
-    console.log('[DBG-save] B assigned note=', JSON.stringify(s.note));
     addLog('编辑档期', client+' '+shoot);
   }else{
     const s={
@@ -4398,7 +4392,6 @@ function saveSchedule(){
     addLog('新增档期', client+' '+shoot);
   }
   markDirty('schedules');
-  window.__dbg2.push({t:'P4-marked', sid:editingScheduleId, note:(DB.getSchedules().find(function(x){return x.id===editingScheduleId;})||{}).note});
   /* 保存后立即单文档推送（用户修改实时上云，不等全量同步；跨身份 set 失败自动 add 兜底，失败自动重试） */
   function cloudPushSingle(col0, body0, retry){
     col0.add(body0).then(function(){ }).catch(function(){
@@ -4421,7 +4414,6 @@ function saveSchedule(){
     }
   }
   flushPush();
-  setTimeout(function(){ const s2=DB.getSchedules().find(function(x){return x.id===editingScheduleId;}); console.log('[DBG-save] C after1.5s note=', JSON.stringify(s2?s2.note:'NONE')); }, 1500);
   renderAll();
   closeModal('scheduleModal');
   toast('已保存并同步到云端','ok');
