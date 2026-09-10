@@ -5747,7 +5747,6 @@ async function handleLogin(){
       toast('已自动注册为主账号','ok');
     }else{
       if(user.password!==password){ toast('用户名或密码错误','error'); return; }
-      recordUserLogin(user);
       user.loginMethod='password';
       DB.setUsers(users);
       markDirty('users');
@@ -5837,7 +5836,6 @@ async function doQrLoginUser(userId){
     if(cloudOK && navigator.onLine){ await pullAllToLocal(true); }
     const user=DB.getUsers().find(function(u){ return u.id===userId; });
     if(!user){ toast('未找到该账号，请刷新后重试','error'); startQrLogin(); return; }
-    recordUserLogin(user);
     DB.setUsers(DB.getUsers());
     markDirty('users');
     await flushPush();
@@ -5896,6 +5894,7 @@ async function loginComplete(user){
   DB.setSessions(sessions);
   markDirty('sessions');
   // 登录后再拉取一次并补推（云端为真相源）
+  let statRecorded=false;
   if(cloudOK && navigator.onLine){
     // 清理初始化时可能残留的空集合标记，确保登录即拉取最新数据
     // （档期、人员、酒店、账号、设置、广场等全部集合，云端为真相源，本地独有数据保留）
@@ -5904,6 +5903,11 @@ async function loginComplete(user){
     await pushAllCollections();
     // 重新解析当前用户（云端可能更新了用户数据）
     currentUser=DB.getUsers().find(function(u2){ return u2.id===user.id; })||user;
+    // 登录统计（拉取合并完成后记录，避免被云端旧数据覆盖；随后推送云端）
+    recordUserLogin(currentUser); statRecorded=true;
+    DB.setUsers(DB.getUsers());
+    markDirty('users');
+    try{ await flushPush(); }catch(e){}
     // 唯一在线：登录即新增一条在线记录（最新记录所在设备为唯一在线端，旧设备将被顶出）
     try{
       await cloudDB.collection('sessions').add({
@@ -5911,6 +5915,12 @@ async function loginComplete(user){
         deviceId:DB.getDeviceId(), loginAt:new Date().toISOString()
       });
     }catch(e){ console.warn('[cloud] 在线登记失败', e); }
+  }
+  // 离线登录也记录登录统计
+  if(!statRecorded && currentUser){
+    recordUserLogin(currentUser);
+    DB.setUsers(DB.getUsers());
+    markDirty('users'); schedulePush();
   }
   ensureSettingsShape();
   // 初始化日历到当前月
