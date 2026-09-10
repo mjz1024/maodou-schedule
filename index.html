@@ -3316,9 +3316,12 @@ async function getAllDocs(name){
       if(x && x.data && typeof x.data==='object' && !x.id && !x.username && !x.name && !x.clientName && !x.date && !x.title && !x.masterId && !x.code){
         const merged=Object.assign({}, x.data);
         if(x._id) merged._id=x._id;
+        delete merged._openid;   // 云端自动字段，禁止回写
         return merged;
       }
-      return x;
+      const c=Object.assign({}, x);
+      delete c._openid;          // 云端自动字段，禁止回写
+      return c;
     });
   }catch(e){ console.warn('[cloud] 拉取失败', name, e); return []; }
 }
@@ -3522,9 +3525,10 @@ async function pushCollection(name){
     for(let i=0;i<items.length;i+=B){
       const batch=items.slice(i,i+B);
       await Promise.all(batch.map(function(item){
-        /* 文档内容必须剥离 _id（保留字段，含 _id 会被 CloudBase 静默拒绝写入） */
+        /* 文档内容必须剥离 _id 与 _openid（保留字段会被 CloudBase 静默拒绝写入） */
         const body=Object.assign({}, item);
         delete body._id;
+        delete body._openid;
         if(item._id){
           /* users 集合：先删后建，规避跨身份 doc.set 静默失败；删除失败时读回验证，仍未生效则新增文档（拉取时最新版胜出） */
           if(name==='users'){
