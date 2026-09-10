@@ -2974,6 +2974,13 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>尾款（自动计算）</label><input id="fBalance" type="text" readonly placeholder="总额 - 定金"></div>
         <div class="form-item full">
           <div class="check-row">
+            <span style="font-size:13px;color:var(--text2)">拍摄对象：</span>
+            <label class="check-label"><input id="fBride" type="checkbox" checked> 拍新娘</label>
+            <label class="check-label"><input id="fGroom" type="checkbox"> 拍新郎</label>
+          </div>
+        </div>
+        <div class="form-item full">
+          <div class="check-row">
             <label class="check-label"><input id="fPickup" type="checkbox"> 接送</label>
             <label class="check-label"><input id="fDual" type="checkbox"> 双机</label>
             <label class="check-label"><input id="fNoGown" type="checkbox"> 无晨袍</label>
@@ -4126,6 +4133,8 @@ function openScheduleModal(id){
   $('fDual').checked=s?!!s.dualCamera:false;
   $('fNoGown').checked=s?!!s.noMorningGown:false;
   $('fConfirmed').checked=s?!!s.personConfirmed:false;
+  $('fBride').checked=s?(s.shootBride!==false):true;   // 默认拍新娘已勾选
+  $('fGroom').checked=!!(s&&s.shootGroom);
   updateBalance();
   populateHotelChain();
   populatePersonSelects(s?s.photographer||'':'', s?s.secondPhotographer||'':'');
@@ -4355,6 +4364,7 @@ function saveSchedule(){
       planner:$('fPlanner').value.trim(), photographer:$('fPhotographer').value.trim(),
       secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
+      shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
       shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value,
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), updatedAt:now
@@ -4371,6 +4381,7 @@ function saveSchedule(){
       planner:$('fPlanner').value.trim(), photographer:$('fPhotographer').value.trim(),
       secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
+      shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
       shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value,
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), ownerId:mid, createdBy:currentUser.username,
@@ -6503,6 +6514,8 @@ function bindEvents(){
   }
 
   // 档期表单
+  $('fBride').addEventListener('change', function(){ if($('fBride').checked) $('fGroom').checked=false; });
+  $('fGroom').addEventListener('change', function(){ if($('fGroom').checked) $('fBride').checked=false; });
   $('fTotal').addEventListener('input', updateBalance);
   $('fDeposit').addEventListener('input', updateBalance);
   $('fShootDate').addEventListener('change', function(){ populateMainSelect(); populateSecondSelect(); });
