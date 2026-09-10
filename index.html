@@ -3367,9 +3367,9 @@ async function pushCollection(name){
       const batch=items.slice(i,i+B);
       await Promise.all(batch.map(function(item){
         if(item._id){
-          return col.doc(item._id).set({data:item}).catch(function(){ return col.add({data:item}); });
+          return col.doc(item._id).set(item).catch(function(){ return col.add(item); });
         }
-        return col.add({data:item});
+        return col.add(item);
       }));
     }
     dirty.delete(name);
