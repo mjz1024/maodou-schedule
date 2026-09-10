@@ -3189,42 +3189,73 @@ async function pullAllToLocal(force){
   if(!cloudOK) return false;
   const skip=function(c){ return dirty.has(c); };
   const myMid=getCurrentMasterId();   // 未登录时为 null：跳过私有集合，避免混合
+  // 通用合并：以 id 去重，云端优先覆盖同 id，本地独有保留（本地数据永不丢失）
+  function mergeById(local, cloud){
+    const by={};
+    (local||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
+    (cloud||[]).forEach(function(x){ if(x&&x.id) by[x.id]=x; });
+    return Object.keys(by).map(function(k){ return by[k]; });
+  }
   try{
     if(!skip('users')){
       const usersD=await getAllDocs('users');
-      if(usersD.length>0) DB.setUsers(usersD.filter(function(x){return x&&x.id;}));
+      const valid=usersD.filter(function(x){return x&&x.id&&x.username;});
+      if(valid.length>0) DB.setUsers(mergeById(DB.getUsers(), valid));
     }
     const cloudUserIds={};
     DB.getUsers().forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
 
     if(myMid && !skip('schedules')){
       const schedD=await getAllDocs('schedules');
-      const mine=schedD.filter(function(x){return x&&x.id&&x.ownerId===myMid;});
-      DB.setSchedules(mine);
+      // 兼容无 ownerId 的旧档期：可见并归属当前主账号（单主账号场景认领）
+      const mine=schedD.filter(function(x){return x&&x.id&&(x.ownerId===myMid||!x.ownerId);});
+      if(mine.length>0){
+        const merged=mergeById(DB.getSchedules(), mine);
+        DB.setSchedules(merged);
+        const toClaim=merged.filter(function(x){return !x.ownerId;});
+        if(toClaim.length){
+          const now2=new Date().toISOString();
+          toClaim.forEach(function(x){ x.ownerId=myMid; x.updatedAt=now2; });
+          DB.setSchedules(merged);
+          markDirty('schedules');
+        }
+      }
     }
 
     if(!skip('settings')){
       const d=await getAllDocs('settings');
       const map={};
       d.forEach(function(x){ if(x&&(x.masterId||x._masterId)) map[x.masterId||x._masterId]=x; });
-      if(Object.keys(map).length>0) DB.setSettings(map);
+      if(Object.keys(map).length>0){
+        const cur=DB.getSettings();
+        Object.keys(map).forEach(function(m){ cur[m]=map[m]; });
+        DB.setSettings(cur);
+      }
     }
     if(myMid && !skip('day_settings')){
       const d=await getAllDocs('day_settings');
       const map={};
       d.forEach(function(x){ if(x&&x.date&&(x.masterId===myMid||x._masterId===myMid)) map[x.date]=x; });
-      if(Object.keys(map).length>0) DB.setDaySettings(map);
+      if(Object.keys(map).length>0){
+        const cur=DB.getDaySettings();
+        Object.keys(map).forEach(function(date){ cur[date]=map[date]; });
+        DB.setDaySettings(cur);
+      }
     }
     if(!skip('sessions')){
       const d=await getAllDocs('sessions');
       const mine=d.filter(function(x){ return x&&x.type!=='qr_login'&&(x.username===currentUser.username||x.userId===currentUser.id); });
-      if(mine.length>0) DB.setSessions(mine);
+      if(mine.length>0) DB.setSessions(mergeById(DB.getSessions(), mine));
     }
     if(!skip('photographers')){
       const d=await getAllDocs('photographers');
       const by={};
       d.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid) (by[m]=by[m]||[]).push(x.name); } });
-      Object.keys(by).forEach(function(m){ DB.setPhoto(m, by[m]); });
+      Object.keys(by).forEach(function(m){
+        const cur=DB.getPhoto(m).slice();
+        by[m].forEach(function(nm){ if(cur.indexOf(nm)<0) cur.push(nm); });
+        DB.setPhoto(m, cur);
+      });
       if(force && myMid && by[myMid]===undefined) DB.setPhoto(myMid, []);
     }
     if(!skip('hotels')){
@@ -3241,22 +3272,34 @@ async function pullAllToLocal(force){
           }
         }
       });
-      Object.keys(by).forEach(function(m){ DB.setHotels(m, by[m]); });
+      Object.keys(by).forEach(function(m){
+        const cur=DB.getHotels(m).slice();
+        by[m].forEach(function(h){
+          if(!cur.some(function(y){ return hotelName(y)===hotelName(h); })) cur.push(h);
+        });
+        DB.setHotels(m, cur);
+      });
       if(force && myMid && by[myMid]===undefined) DB.setHotels(myMid, []);
     }
     if(!skip('operation_log')){
       const d=await getAllDocs('operation_log');
       const by={};
       d.forEach(function(x){ if(x&&x.id){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid) (by[m]=by[m]||[]).push(x); } });
-      Object.keys(by).forEach(function(m){ DB.setOpLog(m, by[m]); });
+      Object.keys(by).forEach(function(m){
+        const cur=DB.getOpLog(m).slice();
+        by[m].forEach(function(item){ if(!cur.some(function(y){ return y.id===item.id; })) cur.push(item); });
+        DB.setOpLog(m, cur);
+      });
     }
     if(!skip('plaza_topics')){
       const d=await getAllDocs('plaza_topics');
-      if(d.length>0) DB.setPlazaTopics(d.filter(function(x){return x&&x.id;}));
+      const valid=d.filter(function(x){return x&&x.id&&x.title;});
+      if(valid.length>0) DB.setPlazaTopics(mergeById(DB.getPlazaTopics(), valid));
     }
     if(!skip('plaza_comments')){
       const d=await getAllDocs('plaza_comments');
-      if(d.length>0) DB.setPlazaComments(d.filter(function(x){return x&&x.id;}));
+      const valid=d.filter(function(x){return x&&x.id&&x.topicId;});
+      if(valid.length>0) DB.setPlazaComments(mergeById(DB.getPlazaComments(), valid));
     }
     return true;
   }catch(e){ console.warn('[cloud] pull 异常', e); return false; }
@@ -3275,16 +3318,16 @@ async function pushCollection(name){
     let items=[];
     const masterUsers=DB.getUsers().filter(function(u){ return u.role==='master'||u.role==='admin'; });
     if(name==='users'){
-      items=DB.getUsers().map(function(x){ return Object.assign({}, x, cloudMeta()); });
+      items=DB.getUsers().map(function(x){ return Object.assign({}, x, {_id:'u_'+x.id}, cloudMeta()); });
     } else if(name==='schedules'){
       const myMid2=getCurrentMasterId();
-      items=DB.getSchedules().filter(function(x){ return x&&(!myMid2||x.ownerId===myMid2); }).map(function(x){ return Object.assign({}, x, cloudMeta()); });
+      items=DB.getSchedules().filter(function(x){ return x&&(!myMid2||x.ownerId===myMid2); }).map(function(x){ return Object.assign({}, x, {_id:'s_'+x.id}, cloudMeta()); });
     } else if(name==='sessions'){
       items=DB.getSessions().map(function(x){ return Object.assign({}, x, cloudMeta()); });
     } else if(name==='plaza_topics'){
-      items=DB.getPlazaTopics().map(function(x){ return Object.assign({}, x, cloudMeta()); });
+      items=DB.getPlazaTopics().map(function(x){ return Object.assign({}, x, {_id:'pt_'+x.id}, cloudMeta()); });
     } else if(name==='plaza_comments'){
-      items=DB.getPlazaComments().map(function(x){ return Object.assign({}, x, cloudMeta()); });
+      items=DB.getPlazaComments().map(function(x){ return Object.assign({}, x, {_id:'pc_'+x.id}, cloudMeta()); });
     } else if(name==='settings'){
       const s=DB.getSettings();
       Object.keys(s).forEach(function(mid){
@@ -3300,7 +3343,7 @@ async function pushCollection(name){
     } else if(name==='operation_log'){
       masterUsers.forEach(function(mu){
         DB.getOpLog(mu.id).forEach(function(item){
-          items.push(Object.assign({}, item, {_masterId:mu.id}, cloudMeta()));
+          items.push(Object.assign({}, item, {_id:'log_'+item.id, _masterId:mu.id}, cloudMeta()));
         });
       });
     } else if(name==='photographers'){
