@@ -2776,8 +2776,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
       <div class="auth-welcome-sig" id="authWelcomeSig">天下喜事 有你而庆</div>
     </div>
     <div class="auth-toggle" id="authRoleToggle">
-      <button type="button" data-role="master" class="active">主账号</button>
-      <button type="button" data-role="sub">子账号</button>
+      <button type="button" data-role="master" class="active">账号登录</button>
       <button type="button" data-role="qr">微信扫码</button>
     </div>
     <div id="authFormPane">
@@ -3841,7 +3840,11 @@ function applyTheme(theme){
 }
 function loadTheme(){
   const s=masterSettings();
-  applyTheme(s.theme||'auto');
+  const mid=getCurrentMasterId();
+  // 优先读取本机最近一次手动选择（选择后固定，不被云端/系统自动更改）
+  let cached=null;
+  try{ cached=mid?localStorage.getItem('ps_theme_'+mid):null; }catch(e){}
+  applyTheme(cached||s.theme||'auto');
 }
 
 /* ============ 渲染总入口 ============ */
@@ -5242,7 +5245,12 @@ function renderMe(){
     });
   });
   $('meView').querySelectorAll('.theme-item').forEach(function(el){
-    el.onclick=function(){ saveMasterSettings({theme:el.dataset.themeVal}); loadTheme(); renderMe(); toast('主题已切换','ok'); };
+    el.onclick=function(){
+      const v=el.dataset.themeVal;
+      saveMasterSettings({theme:v});
+      if(getCurrentMasterId()) localStorage.setItem('ps_theme_'+getCurrentMasterId(), v);
+      loadTheme(); renderMe(); toast('主题已切换','ok');
+    };
   });
   $('reminderSwitch').onclick=function(){
     if(!isMasterLike()){ toast('子账号仅可查看，不能修改','error'); return; }
@@ -6443,7 +6451,7 @@ function refreshAuthWelcomeSig(){
 }
 function bindEvents(){
   refreshAuthWelcomeSig();
-  // 登录方式切换：主账号 / 子账号 / 微信扫码（并列）
+  // 登录方式切换：账号登录 / 微信扫码（统一入口，自动识别主/子账号身份）
   $('authRoleToggle').querySelectorAll('button').forEach(function(b){
     b.onclick=function(){
       $('authRoleToggle').querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
@@ -6456,9 +6464,7 @@ function bindEvents(){
       }else{
         show('authFormPane'); hide('authQrPane');
         if(qrTimer){ clearInterval(qrTimer); qrTimer=null; }
-        $('authHint').textContent = role==='master'
-          ? '主账号首次登录自动注册；子账号由主账号在「我的-账号管理」中添加'
-          : '子账号使用用户名+密码登录，仅可查看档期，可在留言广场发言';
+        $('authHint').textContent='所有账号统一在此登录，自动识别主账号 / 子账号身份';
       }
     };
   });
