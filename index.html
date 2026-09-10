@@ -3331,8 +3331,11 @@ async function pullAllToLocal(force){
   try{
     if(!skip('users')){
       const usersD=await getAllDocs('users');
-      const valid=usersD.filter(function(x){return x&&x.id&&x.username;});
-      if(valid.length>0) DB.setUsers(mergeById(DB.getUsers(), valid));
+      /* 先收集云端删除标记，过滤该 id 所有文档（含跨身份删不掉的残留），防止删除的账号复活 */
+      const deletedIds={};
+      usersD.forEach(function(x){ if(x&&x.id&&x._deleted) deletedIds[x.id]=true; });
+      const valid=usersD.filter(function(x){return x&&x.id&&x.username&&!deletedIds[x.id];});
+      if(valid.length>0) DB.setUsers(mergeById(DB.getUsers(), valid).filter(function(x){ return x&&!x._deleted; }));
     }
     const cloudUserIds={};
     DB.getUsers().forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
@@ -3607,6 +3610,19 @@ function startWatchers(){
             if(kicked){
               toast('该账号已在其他设备登录，当前设备已退出','error');
               setTimeout(function(){ doLogout(); }, 800);
+              return;
+            }
+          }
+          /* users 删除标记：云端标记删除 → 本地立即移除该 id 全部账号，防止残留复活 */
+          if(cfg.name==='users'){
+            const delIds={};
+            snap.docChanges.forEach(function(ch){
+              const doc=ch.doc;
+              if(doc && doc[cfg.idKey] && doc._deleted) delIds[doc[cfg.idKey]]=true;
+            });
+            if(Object.keys(delIds).length){
+              DB.set('users', DB.get('users',[]).filter(function(x){ return x&&!delIds[x.id]; }));
+              if(!modalOpen) renderAll();
               return;
             }
           }
@@ -5107,6 +5123,7 @@ async function superDeleteSub(id){
   markDirty('users');
   cloudRemoveByField('users','id',id);
   await removeUserNestedCloud(id, sub.username);
+  await cloudMarkDeletedUser(id);
   flushPush(); renderSuperPanel();
   toast('已删除子账号','ok');
 }
@@ -5138,6 +5155,8 @@ async function deleteMasterAccount(id){
   cloudRemoveByQuery('hotels',{_masterId:id});
   cloudRemoveByQuery('users',{id:id});
   cloudRemoveByQuery('users',{ownerId:id});   // 同时清理该主账号的子账号云端文档
+  await cloudMarkDeletedUser(id);             // 写入删除标记，防止跨身份残留被拉取复活
+  DB.getUsers().forEach(function(s){ if(s.role==='sub'&&s.ownerId===id) cloudMarkDeletedUser(s.id); });
   addLog('超管删除账号', id);
   renderSuperPanel();
   toast('已删除主账号及其数据','ok');
@@ -5439,8 +5458,18 @@ async function deleteSubAccount(id){
   markDirty('users');
   cloudRemoveByField('users','id',id);
   await removeUserNestedCloud(id, sub.username);   // 彻底清理云端旧格式嵌套残留，防止删除后重复出现
+  await cloudMarkDeletedUser(id);                  // 写入删除标记，防止跨身份残留被拉取复活
   flushPush(); refreshCurrentView();
   toast('已删除','ok');
+}
+/* 云端写入删除标记（add 新文档，当前身份可写）；拉取时按标记过滤该 id 所有文档，防止跨身份残留复活 */
+async function cloudMarkDeletedUser(id){
+  if(!cloudOK||!cloudDB) return;
+  try{
+    await cloudDB.collection('users').add({
+      id:id, _deleted:true, _deletedAt:new Date().toISOString(), _syncAt:new Date().toISOString()
+    });
+  }catch(e){ console.warn('[cloud] 写入删除标记失败', e); }
 }
 /* 删除云端 users 集合中旧格式嵌套文档（{data:[...]}）内含该账号的记录 */
 async function removeUserNestedCloud(id, username){
