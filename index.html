@@ -4592,7 +4592,7 @@ function renderMe(){
   const s=masterSettings();
   const sessions=DB.getSessions().slice().sort(function(a,b){ return (b.loginTime||'').localeCompare(a.loginTime||''); }).slice(0,20);
   const logs=mid?DB.getOpLog(mid).slice(0,50):[];
-  const masterLike=isMasterLike();
+  const masterLike=isMasterLike()||isSuperAdmin();
   let html='';
 
   // 账号信息（默认展开）
@@ -4907,7 +4907,7 @@ function refreshCurrentView(){
 }
 
 function renderManage(){
-  const masterLike=isMasterLike();
+  const masterLike=isMasterLike()||isSuperAdmin();
   let html='<div class="manage-title">管理中心</div>';
   html+='<div class="manage-sub">账号、摄影师、酒店资料统一在此维护</div>';
   if(!masterLike){
