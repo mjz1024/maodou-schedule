@@ -2851,13 +2851,10 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
       <div class="order-ticker" id="orderTicker"></div>
       <div class="view-switch">
         <button class="active" id="viewCalBtn">日历视图</button>
-        <button id="viewListBtn">列表视图</button>
       </div>
       <button class="btn btn-sm btn-ghost upcoming-btn" id="upcomingBtn">📅 下两单日</button>
       <div id="calendarView"></div>
-      <div class="sched-filters" id="filterBar">
-        <select id="filterPhotographer"><option value="">全部摄影师</option></select>
-        <input id="filterKeyword" type="search" placeholder="搜索客户 / 酒店 / 厅名 / 策划师 / 备注">
+      <div class="sched-filters" id="filterBar" style="display:none">
       </div>
       <div id="scheduleListView"></div>
       <button class="fab" id="fabAddBtn" title="新增档期">＋</button>
@@ -3237,14 +3234,14 @@ function isMasterLike(){ return currentUser && (currentUser.role==='master'||cur
 function hotelName(h){ return (typeof h==='string')?h:((h&&h.name)?h.name:''); }
 function mapOldTheme(t){
   if(t==='system'||t==='light') return 'auto';
-  return THEME_ORDER.indexOf(t)>=0?t:'blackgold';
+  return THEME_ORDER.indexOf(t)>=0?t:'auto';
 }
 /* 兼容旧版 ps_settings 扁平格式 {themeMode, themeColor} → 按主账号分组 */
 function ensureSettingsShape(){
   const s=DB.getSettings();
   if(!s || (s.themeMode===undefined && s.themeColor===undefined)) return;
   const mids=DB.getUsers().filter(function(u){return u.role==='master'||u.role==='admin';}).map(function(u){return u.id;});
-  const theme=mapOldTheme(s.themeMode||s.themeColor||'blackgold');
+  const theme=mapOldTheme(s.themeMode||s.themeColor||'auto');
   const news={};
   mids.forEach(function(mid){ news[mid]={masterId:mid, theme:theme, updatedAt:new Date().toISOString()}; });
   if(Object.keys(news).length) DB.setSettings(news);
@@ -3840,7 +3837,7 @@ function applyTheme(theme){
 }
 function loadTheme(){
   const s=masterSettings();
-  applyTheme(s.theme||'blackgold');
+  applyTheme(s.theme||'auto');
 }
 
 /* ============ 渲染总入口 ============ */
@@ -4015,8 +4012,8 @@ function showUnschedModal(){
 
 /* ============ 档期：列表 ============ */
 function filterSchedules(){
-  const kw=($('filterKeyword').value||'').trim().toLowerCase();
-  const ph=$('filterPhotographer').value;
+  const kw=($('filterKeyword')?$('filterKeyword').value:'').trim().toLowerCase();
+  const ph=$('filterPhotographer')?$('filterPhotographer').value:'';
   return DB.getSchedules().filter(function(s){
     if(ph && s.photographer!==ph) return false;
     if(kw){
@@ -4205,6 +4202,7 @@ function subCapture(id){
 }
 function refreshPhotographerFilter(){
   const sel=$('filterPhotographer');
+  if(!sel) return;
   const cur=sel.value;
   const list=DB.getPhoto(getCurrentMasterId()||'_default');
   let html='<option value="">全部摄影师</option>';
@@ -4662,7 +4660,7 @@ function openUpcomingModal(){
       const dt=new Date(d+'T00:00:00');
       calYear=dt.getFullYear(); calMonth=dt.getMonth();
       viewMode='calendar';
-      $('viewCalBtn').classList.add('active'); $('viewListBtn').classList.remove('active');
+      $('viewCalBtn').classList.add('active'); if($('viewListBtn')) $('viewListBtn').classList.remove('active');
       show('calendarView'); show('filterBar');
       selectedDate=d;
       switchTab('schedule');
@@ -5174,7 +5172,7 @@ function renderMe(){
 
   if(masterLike){
     // 账号管理 / 人员管理 / 酒店管理 已移至底部「管理」页并列展示
-    html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">账号管理、人员管理、酒店管理请到底部「管理」页操作</span></div>';
+
 
     // 我的发布
     const myTopics=DB.getPlazaTopics().filter(function(t){ return t.authorId===currentUser.id; }).sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
@@ -6478,21 +6476,21 @@ function bindEvents(){
     el.onclick=function(){ switchTab(el.dataset.tab); };
   });
 
-  // 视图切换
+  // 视图切换（仅日历视图）
   $('viewCalBtn').onclick=function(){
     viewMode='calendar';
-    $('viewCalBtn').classList.add('active'); $('viewListBtn').classList.remove('active');
+    $('viewCalBtn').classList.add('active');
     show('calendarView'); show('filterBar');
   };
-  $('viewListBtn').onclick=function(){
+  if($('viewListBtn')) $('viewListBtn').onclick=function(){
     viewMode='list';
     $('viewListBtn').classList.add('active'); $('viewCalBtn').classList.remove('active');
     hide('calendarView'); hide('filterBar');
   };
 
-  // 筛选
-  $('filterPhotographer').onchange=function(){ renderScheduleList(); };
-  $('filterKeyword').addEventListener('input', debounce(function(){ renderScheduleList(); }, 250));
+  // 筛选（搜索框已移除，保留空逻辑兼容）
+  if($('filterPhotographer')) $('filterPhotographer').onchange=function(){ renderScheduleList(); };
+  if($('filterKeyword')) $('filterKeyword').addEventListener('input', debounce(function(){ renderScheduleList(); }, 250));
 
   // 头部的立即同步
   $('headerSyncBtn').onclick=function(){
