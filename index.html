@@ -4000,21 +4000,11 @@ function setDatalistOptions(input, listId, values){
   }).join('');
 }
 function populateMainSelect(){
-  const dateStr=$('fShootDate').value;
-  const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
-  const current=$('fPhotographer').value;
-  const secondVal=$('fSecond').value;
-  // 人员建议只列出当天可用人员（已占用/互斥的不再出现，可自行输入新人员）
-  const avail=personNameList(current).filter(function(p){ return p!==secondVal && !occ[p]; });
-  setDatalistOptions($('fPhotographer'), 'dlPhoto', avail);
+  // 人员下拉显示人员管理的全部数据（可直接输入新人员；已选可随时更改）
+  setDatalistOptions($('fPhotographer'), 'dlPhoto', personNameList($('fPhotographer').value));
 }
 function populateSecondSelect(){
-  const dateStr=$('fShootDate').value;
-  const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
-  const mainVal=$('fPhotographer').value;
-  const current=$('fSecond').value;
-  const avail=personNameList(current).filter(function(p){ return p!==mainVal && !occ[p]; });
-  setDatalistOptions($('fSecond'), 'dlSecond', avail);
+  setDatalistOptions($('fSecond'), 'dlSecond', personNameList($('fSecond').value));
 }
 function populatePersonSelects(initMain, initSecond){
   if(initMain!==undefined) $('fPhotographer').value=initMain;
