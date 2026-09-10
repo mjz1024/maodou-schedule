@@ -763,6 +763,13 @@ async function initCloud(){
     const st=await auth.getLoginState();
     if(!st){ throw new Error('匿名登录未开通，请到 CloudBase 控制台开启'); }
     cloudDB=cloudApp.database();
+    // 探活：真实读取一次，验证数据接口（CORS/安全域名）可用，避免登录成功但数据接口被拦时误报「已同步」
+    try{
+      await cloudDB.collection('users').limit(1).get();
+    }catch(probeErr){
+      console.warn('[cloud] 数据接口探活失败:', probeErr && probeErr.message);
+      throw new Error('数据接口不可用：请在 CloudBase 控制台「安全来源-Web 安全域名」添加 '+location.origin);
+    }
     cloudOK=true;
     setSyncState('busy');
     await pullAllToLocal(true);      // 登录前先拉最新
@@ -773,7 +780,7 @@ async function initCloud(){
   }catch(e){
     console.warn('[cloud] 初始化失败:', e && e.message);
     cloudOK=false; setSyncState('off');
-    toast('云同步未连接：请检查 CloudBase 环境已开通「匿名登录」','error');
+    toast((e&&e.message)||'云同步未连接','error');
     return false;
   }
 }
