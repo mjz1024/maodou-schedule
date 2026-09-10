@@ -6128,26 +6128,8 @@ async function boot(){
   const hasCloud=await initCloud();
   if(!hasCloud) setSyncState('off');
   ensureSettingsShape();
-  // 已登录会话恢复（兼容旧版 ps_session 的 {username} 格式）
-  const session=DB.getSession();
-  let resumeUser=null;
-  if(session && session.currentUser){
-    resumeUser=DB.getUsers().find(function(x){ return x.id===session.currentUser.id; });
-  }else if(session && session.username){
-    resumeUser=DB.getUsers().find(function(x){ return x.username===session.username; });
-  }
-  if(resumeUser){
-    currentUser=resumeUser;
-    const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
-    selectedDate=null;
-    hide('authPage'); show('mainApp');
-    switchTab('schedule');
-    renderAll();
-    refreshPhotographerFilter();
-    if(hasCloud){ startHeartbeat(); startReminderLoop(); }
-    checkPendingScan();   // 手机端扫码打开：已登录则弹确认
-    return;
-  }
+  // 扫码或打开网址后默认未登录：清除历史会话，一律展示登录页（登录后才进入首页）
+  DB.setSession(null);
   show('authPage');
   startQrLogin();         // 登录页展示扫码登录二维码
   if(hasCloud){ startHeartbeat(); startReminderLoop(); }
