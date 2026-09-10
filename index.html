@@ -3646,7 +3646,7 @@ function startWatchers(){
             if(cfg.filter && !cfg.filter(doc)) return;
             const i=arr.findIndex(function(x){ return x[cfg.idKey]===doc[cfg.idKey]; });
             if(ch.dataType==='remove'){ if(i>=0){ arr.splice(i,1); changed=true; } }
-            else if(ch.dataType==='update'){ if(i>=0){ arr[i]=doc; changed=true; } }
+            else if(ch.dataType==='update'){ if(i>=0){ arr[i]=Object.assign({}, arr[i], doc); changed=true; } }   // 合并：云端字段优先，本地独有字段（如备注）保留
             else if(ch.dataType==='add'){ if(i<0){ arr.push(doc); changed=true; } }
           });
           if(changed){
