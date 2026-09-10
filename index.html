@@ -3366,10 +3366,13 @@ async function pushCollection(name){
     for(let i=0;i<items.length;i+=B){
       const batch=items.slice(i,i+B);
       await Promise.all(batch.map(function(item){
+        /* 文档内容必须剥离 _id（保留字段，含 _id 会被 CloudBase 静默拒绝写入） */
+        const body=Object.assign({}, item);
+        delete body._id;
         if(item._id){
-          return col.doc(item._id).set(item).catch(function(){ return col.add(item); });
+          return col.doc(item._id).set(body).catch(function(){ return col.add(body); });
         }
-        return col.add(item);
+        return col.add(body);
       }));
     }
     dirty.delete(name);
@@ -5347,7 +5350,7 @@ async function showQrConfirm(code){
   const ok=await confirmBox('扫码登录确认', (u.nickname||u.username)+' 正在另一台设备请求登录，是否确认？');
   if(ok){
     try{
-      await cloudDB.collection('sessions').add({data:{type:'qr_login', code:code, userId:u.id, status:'confirmed', at:new Date().toISOString()}});
+      await cloudDB.collection('sessions').add({type:'qr_login', code:code, userId:u.id, status:'confirmed', at:new Date().toISOString()});
       toast('已确认，对方设备即将登录','ok');
     }catch(e){
       toast('确认失败：'+e.message,'error');
