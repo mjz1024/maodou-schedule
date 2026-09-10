@@ -2968,7 +2968,8 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>副机位</label><div class="person-pick"><input id="fSecond" placeholder="点击选择或输入" autocomplete="off" style="flex:1"><div class="person-pop" id="secondPop" hidden></div></div><datalist id="dlSecond"></datalist></div>
         <div class="form-item"><label>下单日期</label><input id="fOrderDate" type="date"></div>
         <div class="form-item"><label>拍摄日期</label><input id="fShootDate" type="date"></div>
-        <div class="form-item"><label>到场时间</label><input id="fArrival" type="time"></div>
+        <div class="form-item"><label>人员到场时间</label><input id="fArrival" type="time"></div>
+        <div class="form-item"><label>新郎抵达时间</label><input id="fGroomArrival" type="time"></div>
         <div class="form-item"><label>总额（元）</label><input id="fTotal" type="number" min="0" step="0.01" placeholder="0"></div>
         <div class="form-item"><label>定金（元）</label><input id="fDeposit" type="number" min="0" step="0.01" placeholder="0"></div>
         <div class="form-item"><label>尾款（自动计算）</label><input id="fBalance" type="text" readonly placeholder="总额 - 定金"></div>
@@ -4031,7 +4032,7 @@ function schedCardHTML(s, upcoming){
   const dateHtml=upcoming[s.shootDate]&&!s.delivered?'<span class="upcoming">'+(s.shootDate?esc(s.shootDate).slice(5):'')+'</span>':(s.shootDate?esc(s.shootDate).slice(5):'未定');
   let html='<div class="sched-card'+(s.delivered?' delivered':'')+'" data-id="'+esc(s.id)+'">';
   html+='<div class="sched-head"><div class="sched-client">'+esc(s.clientName)+'</div><div class="sched-date">'+dateHtml+'</div></div>';
-  if(s.hotel||s.hall||s.planner||s.photographer||s.secondPhotographer||s.orderDate||s.arrivalTime){
+  if(s.hotel||s.hall||s.planner||s.photographer||s.secondPhotographer||s.orderDate||s.arrivalTime||s.groomArrival){
     html+='<div class="sched-meta">';
     if(s.hotel) html+='<span class="m">'+esc(s.hotel)+'</span>';
     if(s.hall) html+='<span class="m">'+esc(s.hall)+'</span>';
@@ -4039,7 +4040,8 @@ function schedCardHTML(s, upcoming){
     if(s.photographer) html+='<span class="m">📷 '+esc(s.photographer)+'</span>';
     if(s.secondPhotographer) html+='<span class="m">副机：'+esc(s.secondPhotographer)+'</span>';
     if(s.orderDate) html+='<span class="m">下单 '+esc(s.orderDate)+'</span>';
-    if(s.arrivalTime) html+='<span class="m">到场 '+esc(s.arrivalTime)+'</span>';
+    if(s.arrivalTime) html+='<span class="m">人员到场 '+esc(s.arrivalTime)+'</span>';
+    if(s.groomArrival) html+='<span class="m">新郎抵达 '+esc(s.groomArrival)+'</span>';
     html+='</div>';
   }
   html+='<div class="sched-money"><span class="amt">总额 ¥'+(s.totalAmount||0)+'</span><span class="dep">定金 ¥'+(s.deposit||0)+'</span><span class="bal">尾款 ¥'+bal+'</span></div>';
@@ -4126,6 +4128,7 @@ function openScheduleModal(id){
   $('fOrderDate').value=s?s.orderDate||'':'';
   $('fShootDate').value=(s?s.shootDate:'')||selectedDate||'';
   $('fArrival').value=s?s.arrivalTime||'':'';
+  $('fGroomArrival').value=s?s.groomArrival||'':'';
   $('fTotal').value=s?(s.totalAmount||''):'';
   $('fDeposit').value=s?(s.deposit||''):'';
   $('fNote').value=s?(s.note||s.remarks||''):'';
@@ -4368,7 +4371,7 @@ function saveSchedule(){
       secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
       shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
-      shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value,
+      shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value, groomArrival:$('fGroomArrival').value,
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), updatedAt:now
     });
@@ -4381,7 +4384,7 @@ function saveSchedule(){
       secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
       shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
-      shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value,
+      shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value, groomArrival:$('fGroomArrival').value,
       totalAmount:num($('fTotal').value), deposit:num($('fDeposit').value),
       note:$('fNote').value.trim(), ownerId:mid, createdBy:currentUser.username,
       createdAt:now, updatedAt:now, delivered:false, deliveredAt:null
@@ -4472,7 +4475,8 @@ function openDayModal(dateStr){
       const bal=(s.totalAmount||0)-(s.deposit||0);
       html+='<div class="sched-card'+(s.delivered?' delivered':'')+'" data-id="'+esc(s.id)+'">'+
         '<div class="sched-head"><div class="sched-client">'+esc(s.clientName)+'</div>'+
-        (s.arrivalTime?'<div class="sched-date">'+esc(s.arrivalTime)+'</div>':'')+'</div>';
+        (s.arrivalTime?'<div class="sched-date">人员 '+esc(s.arrivalTime)+'</div>':'')+
+        (s.groomArrival?'<div class="sched-date">新郎 '+esc(s.groomArrival)+'</div>':'')+'</div>';
       if(s.hotel||s.hall||s.planner) html+='<div class="sched-meta"><span class="m">'+esc(s.hotel||'')+'</span><span class="m">'+esc(s.hall||'')+'</span><span class="m">策划：'+esc(s.planner||'')+'</span></div>';
       html+='<div class="sched-money"><span class="amt">总额 ¥'+(s.totalAmount||0)+'</span><span class="dep">定金 ¥'+(s.deposit||0)+'</span><span class="bal">尾款 ¥'+bal+'</span></div>';
       if(s.note||s.remarks) html+='<div class="sched-note">'+esc(s.note||s.remarks)+'</div>';
@@ -4533,7 +4537,8 @@ function openUpcomingModal(){
     dayScheds.forEach(function(s){
       html+='<div class="up-card" data-id="'+esc(s.id)+'">'+
         '<div class="up-card-main"><span class="up-client">'+esc(s.clientName)+'</span>'+
-        (s.arrivalTime?'<span class="up-time">'+esc(s.arrivalTime)+'</span>':'')+
+        (s.arrivalTime?'<span class="up-time">人员 '+esc(s.arrivalTime)+'</span>':'')+
+        (s.groomArrival?'<span class="up-time">新郎 '+esc(s.groomArrival)+'</span>':'')+
         (s.delivered?'<span class="chip" style="background:var(--primary-soft);color:var(--primary)">已交付</span>':'')+
         '</div>'+
         '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
