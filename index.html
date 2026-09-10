@@ -4382,7 +4382,12 @@ function saveSchedule(){
     addLog('新增档期', client+' '+shoot);
   }
   markDirty('schedules');
-  /* 保存后立即单文档推送（用户修改实时上云，不等全量同步；跨身份 set 失败自动 add 兜底） */
+  /* 保存后立即单文档推送（用户修改实时上云，不等全量同步；跨身份 set 失败自动 add 兜底，失败自动重试） */
+  function cloudPushSingle(col0, body0, retry){
+    col0.add(body0).then(function(){ }).catch(function(){
+      if(retry>0){ setTimeout(function(){ cloudPushSingle(col0, body0, retry-1); }, 2000); }
+    });
+  }
   if(cloudOK && cloudDB){
     const mid2=getCurrentMasterId();
     const sid=editingScheduleId||(DB.getSchedules().length? (DB.getSchedules()[DB.getSchedules().length-1]||{}).id:'');
@@ -4390,10 +4395,11 @@ function saveSchedule(){
     if(s3){
       const b=Object.assign({}, s3, cloudMeta());
       delete b._id; delete b._openid;
-      if(sid===editingScheduleId && editingScheduleId){
-        cloudDB.collection('schedules').doc('s_'+sid).set(b).catch(function(){ cloudDB.collection('schedules').add(b).catch(function(){}); });
+      const col0=cloudDB.collection('schedules');
+      if(editingScheduleId){
+        col0.doc('s_'+sid).set(b).then(function(){ }).catch(function(){ cloudPushSingle(col0, b, 4); });
       } else {
-        cloudDB.collection('schedules').add(b).catch(function(){});
+        cloudPushSingle(col0, b, 4);
       }
     }
   }
