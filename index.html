@@ -3986,7 +3986,7 @@ function showUnschedModal(){
       html+='<div class="sched-card" data-id="'+esc(s.id)+'">'+
         '<div class="sched-main"><div class="sched-client">'+esc(s.clientName)+'</div>'+
         '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
-        '<div class="up-card-sub">下单 '+(s.orderDate||'未填')+' · 金额 ¥'+(s.totalAmount||0)+(s.note?' · '+esc(s.note):'')+'</div></div>'+
+        '<div class="up-card-sub">人员到场 '+(s.arrivalTime||'未填')+' · 金额 ¥'+(s.totalAmount||0)+(s.note?' · '+esc(s.note):'')+'</div></div>'+
         '<button class="btn btn-sm btn-ghost">补排期</button></div>';
     });
     html+='</div>';
@@ -4039,7 +4039,6 @@ function schedCardHTML(s, upcoming){
     if(s.planner) html+='<span class="m">策划：'+esc(s.planner)+'</span>';
     if(s.photographer) html+='<span class="m">📷 '+esc(s.photographer)+'</span>';
     if(s.secondPhotographer) html+='<span class="m">副机：'+esc(s.secondPhotographer)+'</span>';
-    if(s.orderDate) html+='<span class="m">下单 '+esc(s.orderDate)+'</span>';
     if(s.arrivalTime) html+='<span class="m">人员到场 '+esc(s.arrivalTime)+'</span>';
     if(s.groomArrival) html+='<span class="m">新郎抵达 '+esc(s.groomArrival)+'</span>';
     html+='</div>';
