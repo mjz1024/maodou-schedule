@@ -3467,7 +3467,7 @@ async function pushCollection(name){
         });
       });
     }
-    if(items.length===0) return;
+    if(items.length===0){ dirty.delete(name); return; }
     const B=50;
     for(let i=0;i<items.length;i+=B){
       const batch=items.slice(i,i+B);
@@ -5818,6 +5818,8 @@ async function loginComplete(user){
   markDirty('sessions');
   // 登录后再拉取一次并补推（云端为真相源）
   if(cloudOK && navigator.onLine){
+    // 清理初始化时可能残留的空集合标记，确保登录即拉取最新档期等数据
+    dirty.delete('schedules'); dirty.delete('day_settings'); dirty.delete('operation_log');
     await pullAllToLocal(true);
     await pushAllCollections();
     // 重新解析当前用户（云端可能更新了用户数据）
@@ -5862,8 +5864,13 @@ function switchTab(tab){
 function refreshAuthWelcomeSig(){
   const el=$('authWelcomeSig');
   if(!el) return;
-  const sig=(DB.getSettings()||{})['_login_sig'];
-  if(sig) el.textContent=sig;
+  let sig=(DB.getSettings()||{})['_login_sig'];
+  // 修正旧版本地缓存/默认文案
+  if(!sig || sig==='欢迎来到毛豆档期，见证每一场幸福婚礼'){
+    sig='天下喜事 有你而庆';
+    const s=DB.getSettings(); s._login_sig=sig; DB.setSettings(s);
+  }
+  el.textContent=sig;
 }
 function bindEvents(){
   refreshAuthWelcomeSig();
