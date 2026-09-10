@@ -4392,10 +4392,12 @@ function saveSchedule(){
     addLog('新增档期', client+' '+shoot);
   }
   markDirty('schedules');
-  /* 保存后立即单文档推送（用户修改实时上云，不等全量同步；跨身份 set 失败自动 add 兜底，失败自动重试） */
+  /* 保存后立即单文档推送（用户修改实时上云；跨身份 set 失败自动 add 兜底，失败拉长间隔重试并记录原因） */
   function cloudPushSingle(col0, body0, retry){
-    col0.add(body0).then(function(){ }).catch(function(){
-      if(retry>0){ setTimeout(function(){ cloudPushSingle(col0, body0, retry-1); }, 2000); }
+    window.__errs=window.__errs||[];
+    col0.add(body0).then(function(res){ window.__errs.push({t:'add-ok', at:new Date().toISOString().slice(11,19)}); }).catch(function(e){
+      window.__errs.push({t:'add-fail', msg:String(e&&e.message||e).slice(0,120), retry:retry, at:new Date().toISOString().slice(11,19)});
+      if(retry>0){ setTimeout(function(){ cloudPushSingle(col0, body0, retry-1); }, 4000); }
     });
   }
   if(cloudOK && cloudDB){
@@ -4407,9 +4409,9 @@ function saveSchedule(){
       delete b._id; delete b._openid;
       const col0=cloudDB.collection('schedules');
       if(editingScheduleId){
-        col0.doc('s_'+sid).set(b).then(function(){ }).catch(function(){ cloudPushSingle(col0, b, 4); });
+        col0.doc('s_'+sid).set(b).then(function(){ window.__errs=window.__errs||[]; window.__errs.push({t:'set-ok'}); }).catch(function(e){ window.__errs=window.__errs||[]; window.__errs.push({t:'set-fail', msg:String(e&&e.message||e).slice(0,120)}); cloudPushSingle(col0, b, 5); });
       } else {
-        cloudPushSingle(col0, b, 4);
+        cloudPushSingle(col0, b, 5);
       }
     }
   }
