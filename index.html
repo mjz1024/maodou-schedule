@@ -3101,6 +3101,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
      任何修改立即推送云端，20s 心跳 + watch 实时同步
    ================================================================ */
 const APP_VERSION = 'v31.0';
+const APP_RELEASE = '1.1.0';   // 客户端安装包版本号（用于强制更新比对）
 const CLOUDBASE_ENV = 'mjz1024-d9gmd96afc2ffc3ad';
 const CLOUD_REGION = 'ap-shanghai';   // 环境实际创建区域（ap-shanghai）
 const THEME_ORDER = ['auto','champagne','pink','dark','blackgold'];
@@ -3300,6 +3301,7 @@ async function initCloud(){
     await pushAllCollections();      // 补推本地未同步内容
     setSyncState('on');
     startWatchers();
+    checkAppUpdate();   // 检测云端是否有新版本（强制更新）
     return true;
   }catch(e){
     console.warn('[cloud] 初始化失败:', e && e.message);
@@ -5163,7 +5165,7 @@ function renderMe(){
   if(u.wechat && (u.wechat.nickname||u.wechat.phone)) html+='<div class="me-row"><span class="lbl">微信绑定</span><span class="val small">'+(u.wechat.nickname?esc(u.wechat.nickname)+' ':'')+(u.wechat.phone?esc(u.wechat.phone):'')+'</span></div>';
   html+='<div class="me-row"><span class="lbl">角色</span><span class="val"><span class="role-badge '+(u.role||'sub')+'">'+roleName(u.role)+'</span></span></div>';
   html+='<div class="me-row"><span class="lbl">访问次数</span><span class="val small">'+(u.visitCount||0)+' 次</span></div>';
-  html+='<div class="me-row"><span class="lbl">版本</span><span class="val small">'+APP_VERSION+' · 小程序平台</span></div>';
+  html+='<div class="me-row"><span class="lbl">版本</span><span class="val small">'+APP_RELEASE+' · '+APP_VERSION+' · 小程序平台</span></div>';
   html+='</div></div>';
 
   // 主题
@@ -5340,6 +5342,120 @@ function getDeviceName(){
   else if(/Windows/i.test(ua)) n='Windows';
   return n;
 }
+/* ===== 强制更新：云端 app_versions 集合 + 超管发布版本 ===== */
+function cmpVer(a,b){
+  const pa=(a||'').toString().replace(/^v/i,'').split('.').map(function(x){ return parseInt(x)||0; });
+  const pb=(b||'').toString().replace(/^v/i,'').split('.').map(function(x){ return parseInt(x)||0; });
+  for(let i=0;i<3;i++){ const x=pa[i]||0, y=pb[i]||0; if(x!==y) return x>y?1:-1; }
+  return 0;
+}
+function platformOf(){
+  const ua=(navigator.userAgent||'');
+  if(/MicroMessenger/i.test(ua)) return 'wx';
+  if(/Android/i.test(ua)) return 'android';
+  if(/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if(/Windows/i.test(ua)) return 'win';
+  if(/Macintosh|Mac OS X/i.test(ua)) return 'mac';
+  return 'web';
+}
+function platformNameOf(){ const p=platformOf(); return {wx:'微信小程序',android:'安卓',ios:'iOS',win:'Windows',mac:'Mac',web:'网页版'}[p]||'网页版'; }
+async function readLatestVersion(){
+  try{
+    if(!cloudDB) return null;
+    const res=await cloudDB.collection('settings').where({type:'version'}).orderBy('publishedAt','desc').limit(1).get();
+    const list=res && res.data;
+    return (list && list[0]) || null;
+  }catch(e){ return null; }
+}
+async function checkAppUpdate(){
+  try{
+    const v=await readLatestVersion();
+    if(!v || !v.appVersion) return;
+    if(cmpVer(v.appVersion, APP_RELEASE)<=0) return;
+    const force = v.force===true || (v.minVersion && cmpVer(v.minVersion, APP_RELEASE)>0);
+    showUpdateDialog(v, force);
+  }catch(e){}
+}
+function updateUrlFor(v){
+  const p=platformOf();
+  const u=(v&&v.urls)||{};
+  if(p==='android' && u.android) return u.android;
+  if(p==='ios' && u.ios) return u.ios;
+  if(p==='win' && u.win) return u.win;
+  if(p==='mac' && u.mac) return u.mac;
+  if(u.web) return u.web;
+  return u.android||u.win||u.mac||u.web||'';
+}
+function showUpdateDialog(v, force){
+  const old=$('updateDialog'); if(old) old.remove();
+  const url=updateUrlFor(v);
+  const note=(v.note||'').replace(/\n/g,'<br>');
+  let html='<div class="modal-mask" id="updateDialog" style="z-index:99999">';
+  html+='<div class="modal-card" style="max-width:420px;text-align:center">';
+  html+='<div style="font-size:40px;margin-bottom:8px">🚀</div>';
+  html+='<h3 style="margin:4px 0 10px">发现新版本 '+esc(v.appVersion)+'</h3>';
+  if(note) html+='<div style="font-size:13px;color:var(--text3);line-height:1.7;margin-bottom:14px;text-align:left;background:var(--bg);padding:10px 12px;border-radius:10px">'+note+'</div>';
+  html+='<div class="modal-btns" style="flex-direction:column;gap:10px">';
+  if(url) html+='<a class="btn" style="background:var(--primary);color:#fff;text-decoration:none;display:block;padding:11px;border-radius:10px;font-weight:600" href="'+esc(url)+'" target="_blank" rel="noopener">立即更新下载</a>';
+  html+='<div style="font-size:12px;color:var(--text3)">'+platformNameOf()+' · 当前版本 '+APP_RELEASE+'</div>';
+  if(!force) html+='<button class="btn btn-ghost" id="updateLaterBtn" style="width:100%">稍后再说</button>';
+  html+='</div></div></div>';
+  const div=document.createElement('div');
+  div.innerHTML=html;
+  document.body.appendChild(div.firstElementChild);
+  if(!force){
+    const later=$('updateLaterBtn');
+    if(later) later.onclick=function(){ const d=$('updateDialog'); if(d) d.remove(); };
+  }
+}
+function openVersionForm(){
+  const old=$('updateDialog'); if(old) old.remove();
+  let html='<div class="modal-mask" id="updateDialog" style="z-index:99999;overflow:auto">';
+  html+='<div class="modal-card" style="max-width:480px">';
+  html+='<h3 style="margin-bottom:6px">发布新版本</h3>';
+  html+='<div style="font-size:12px;color:var(--text3);margin-bottom:12px">发布后所有客户端启动时检测到新版本即会提示；勾选「强制更新」则弹窗不可关闭。当前安装版本 '+APP_RELEASE+'</div>';
+  html+='<div class="auth-field"><label>最新版本号（如 1.2.0，须大于当前）</label><input id="verApp" type="text" placeholder="1.2.0"></div>';
+  html+='<div class="auth-field"><label>最低强制版本号（低于此版本强制更新，可留空）</label><input id="verMin" type="text" placeholder="如 1.1.0"></div>';
+  html+='<div class="auth-field" style="display:flex;align-items:center;gap:8px"><label style="margin:0">强制更新（不可跳过）</label><input id="verForce" type="checkbox" style="width:18px;height:18px;flex:none"></div>';
+  html+='<div class="auth-field"><label>更新说明</label><textarea id="verNote" rows="3" placeholder="修复了…新增了…"></textarea></div>';
+  html+='<div class="auth-field"><label>安卓下载链接</label><input id="verApk" type="text" placeholder="https://…/xx.apk"></div>';
+  html+='<div class="auth-field"><label>Windows 下载链接</label><input id="verWin" type="text" placeholder="https://…/xx.exe"></div>';
+  html+='<div class="auth-field"><label>Mac 下载链接</label><input id="verMac" type="text" placeholder="https://…/xx.dmg"></div>';
+  html+='<div class="auth-field"><label>网页版链接（可选）</label><input id="verWeb" type="text" placeholder="https://…"></div>';
+  html+='<div class="modal-btns">';
+  html+='<button class="btn" id="verPubBtn" style="flex:1">发布版本</button>';
+  html+='<button class="btn btn-ghost" id="verCancelBtn">取消</button>';
+  html+='</div></div></div>';
+  const div=document.createElement('div');
+  div.innerHTML=html;
+  document.body.appendChild(div.firstElementChild);
+  $('verCancelBtn').onclick=function(){ const d=$('updateDialog'); if(d) d.remove(); };
+  $('verPubBtn').onclick=async function(){
+    const appVersion=($('verApp').value||'').trim();
+    if(!appVersion){ alert('请填写最新版本号'); return; }
+    if(cmpVer(appVersion, APP_RELEASE)<=0){ alert('新版本号必须大于当前 '+APP_RELEASE); return; }
+    $('verPubBtn').disabled=true; $('verPubBtn').textContent='发布中…';
+    try{
+      if(!cloudDB) throw new Error('云端未连接');
+      await cloudDB.collection('settings').add({
+        type:'version',
+        appVersion: appVersion,
+        minVersion: ($('verMin').value||'').trim(),
+        force: !!$('verForce').checked,
+        note: ($('verNote').value||'').trim(),
+        urls: { android:($('verApk').value||'').trim(), win:($('verWin').value||'').trim(), mac:($('verMac').value||'').trim(), web:($('verWeb').value||'').trim() },
+        publishedBy: currentUser?currentUser.username:'',
+        publishedAt: new Date().toISOString()
+      });
+      const d=$('updateDialog'); if(d) d.remove();
+      alert('版本 '+appVersion+' 已发布，客户端启动时将提示更新');
+      renderSuperPanel();
+    }catch(e){
+      $('verPubBtn').disabled=false; $('verPubBtn').textContent='发布版本';
+      alert('发布失败：'+(e&&e.message||'未知错误'));
+    }
+  };
+}
 function renderSuperPanel(){
   const host=$('superBody'); if(!host) return;
   const masters=DB.getUsers().filter(function(u){ return u.role==='master'||u.role==='admin'; });
@@ -5349,6 +5465,10 @@ function renderSuperPanel(){
     '<div class="super-id">📝 登录页欢迎签名</div>'+
     '<div class="super-info">'+esc(curSig)+'</div>'+
     '<div class="super-ops"><button class="btn btn-ghost btn-sm" data-super="sig">修改签名</button></div></div>';
+  html+='<div class="super-row super-version-row">'+
+    '<div class="super-id">🚀 版本发布管理</div>'+
+    '<div class="super-info" id="verInfoText">当前安装版本 '+APP_RELEASE+'</div>'+
+    '<div class="super-ops"><button class="btn btn-ghost btn-sm" data-super="ver">发布新版本</button></div></div>';
   if(!masters.length){ html+='<div class="me-row"><span class="lbl small" style="color:var(--text3)">暂无主账号</span></div>'; host.innerHTML=html; return; }
   html+='<div class="super-tree">';
   masters.forEach(function(m){
@@ -5402,6 +5522,20 @@ function renderSuperPanel(){
     b.onclick=function(e){
       if(e.target.closest('[data-super-toggle]')) return;
       const act=b.dataset.super, id=b.dataset.id;
+      if(act==='ver'){ openVersionForm(); return; }
+      if(act==='sig'){
+        const settings=DB.getSettings();
+        const cur=settings._login_sig||'天下喜事 有你而庆';
+        const v=window.prompt('修改登录页欢迎签名', cur);
+        if(v!==null){
+          settings._login_sig=(v||'').trim()||cur;
+          DB.setSettings(settings);
+          markDirty('settings'); flushPush();
+          toast('登录页签名已更新','ok');
+          renderSuperPanel();
+        }
+        return;
+      }
       const target=DB.getUsers().find(function(u){ return u.id===id; });
       if(!target){ toast('未找到该账号','error'); return; }
       if(act==='ban'){
@@ -5421,17 +5555,6 @@ function renderSuperPanel(){
         })();
       }else if(act==='export'){
         exportMasterOrders(id);
-      }else if(act==='sig'){
-        const settings=DB.getSettings();
-        const cur=settings._login_sig||'天下喜事 有你而庆';
-        const v=window.prompt('修改登录页欢迎签名', cur);
-        if(v!==null){
-          settings._login_sig=(v||'').trim()||cur;
-          DB.setSettings(settings);
-          markDirty('settings'); flushPush();
-          toast('登录页签名已更新','ok');
-          renderSuperPanel();
-        }
       }
     };
   });
