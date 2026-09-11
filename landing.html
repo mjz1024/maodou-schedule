@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喜档管家 — 天下喜事 有你而庆</title>
+<meta name="description" content="喜档管家：专为婚庆行业打造的档期管理与广场社交一体化平台。多端支持，云端同步，让每一场喜事都井井有条。">
+<style>
+:root{
+  --gold:#d4af37;
+  --gold-l:#f0d68a;
+  --gold-d:#a8842c;
+  --red:#c0392b;
+  --bg0:#0a0a10;
+  --bg1:#12121b;
+  --bg2:#1a1a26;
+  --card:rgba(255,255,255,.045);
+  --line:rgba(212,175,55,.22);
+  --text:#f4f1ea;
+  --text2:#c9c4b8;
+  --text3:#8a857a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:radial-gradient(1200px 600px at 80% -10%,rgba(212,175,55,.10),transparent 60%),
+             radial-gradient(900px 500px at -10% 30%,rgba(192,57,43,.07),transparent 55%),
+             linear-gradient(180deg,var(--bg0),var(--bg1) 40%,#0c0c13);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:0 22px}
+/* ---------- 顶部导航 ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,10,16,.72);border-bottom:1px solid rgba(212,175,55,.12)}
+.nav-in{max-width:1100px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
+.brand img{width:40px;height:40px;border-radius:11px;box-shadow:0 0 18px rgba(212,175,55,.35)}
+.brand b{font-size:19px;letter-spacing:2px;background:linear-gradient(120deg,#fff,var(--gold-l) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;letter-spacing:1px;transition:color .2s}
+.nav-links a:hover{color:var(--gold-l)}
+.nav-cta{background:linear-gradient(120deg,var(--gold-d),var(--gold));color:#1a1204!important;font-weight:700;padding:9px 20px;border-radius:999px}
+.nav-cta:hover{color:#1a1204!important;box-shadow:0 0 22px rgba(212,175,55,.45)}
+/* ---------- Hero ---------- */
+.hero{position:relative;padding:150px 22px 80px;text-align:center}
+.hero .logo{width:130px;height:130px;border-radius:32px;box-shadow:0 0 60px rgba(212,175,55,.4),0 20px 50px rgba(0,0,0,.5);animation:float 5s ease-in-out infinite;margin:0 auto 34px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero h1{font-size:clamp(40px,7vw,68px);font-weight:800;letter-spacing:6px;background:linear-gradient(120deg,#fff 10%,var(--gold-l) 45%,var(--gold) 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15}
+.hero .slogan{margin-top:18px;font-size:clamp(16px,2.4vw,22px);color:var(--gold-l);letter-spacing:8px;font-weight:600}
+.hero .desc{margin:22px auto 0;max-width:640px;color:var(--text3);font-size:15px;line-height:1.9;letter-spacing:1px}
+.hero-btns{margin-top:40px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:15px 34px;border-radius:999px;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:1px;transition:all .25s;border:none;cursor:pointer}
+.btn-gold{background:linear-gradient(120deg,var(--gold-d),var(--gold) 60%,var(--gold-l));color:#1a1204;box-shadow:0 8px 30px rgba(212,175,55,.35)}
+.btn-gold:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(212,175,55,.5)}
+.btn-ghost{background:transparent;color:var(--text);border:1.5px solid rgba(212,175,55,.5)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold-l);transform:translateY(-3px)}
+.hero .ver-tip{margin-top:22px;font-size:12.5px;color:var(--text3);letter-spacing:1px}
+.hero .ver-tip b{color:var(--gold-l)}
+/* 装饰光点 */
+.deco{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;pointer-events:none}
+.deco-1{width:420px;height:420px;background:rgba(212,175,55,.18);top:-120px;left:-120px}
+.deco-2{width:380px;height:380px;background:rgba(192,57,43,.14);bottom:-80px;right:-100px}
+/* ---------- 区块标题 ---------- */
+.sec{padding:90px 22px}
+.sec-head{text-align:center;margin-bottom:56px}
+.sec-head .k{font-size:13px;letter-spacing:6px;color:var(--gold);text-transform:uppercase}
+.sec-head h2{font-size:clamp(28px,4.5vw,42px);margin-top:12px;letter-spacing:3px;font-weight:800}
+.sec-head p{color:var(--text3);margin-top:14px;font-size:15px;letter-spacing:1px}
+/* ---------- 功能卡片 ---------- */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:34px 28px;transition:all .3s;backdrop-filter:blur(8px)}
+.feat:hover{transform:translateY(-6px);border-color:rgba(212,175,55,.5);box-shadow:0 18px 44px rgba(0,0,0,.45),0 0 30px rgba(212,175,55,.08)}
+.feat .ic{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,rgba(212,175,55,.22),rgba(192,57,43,.16));border:1px solid var(--line);margin-bottom:20px}
+.feat h3{font-size:19px;letter-spacing:2px;margin-bottom:10px}
+.feat p{color:var(--text3);font-size:13.5px;line-height:1.85}
+/* ---------- 下载区 ---------- */
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+.dl-card{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:22px;padding:38px 30px;text-align:center;transition:all .3s;overflow:hidden}
+.dl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.6}
+.dl-card:hover{transform:translateY(-6px);box-shadow:0 20px 48px rgba(0,0,0,.5),0 0 34px rgba(212,175,55,.12)}
+.dl-card .os{width:74px;height:74px;margin:0 auto 20px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.05));border:1px solid var(--line)}
+.dl-card h3{font-size:21px;letter-spacing:2px}
+.dl-card .meta{margin-top:8px;font-size:12.5px;color:var(--text3);letter-spacing:1px}
+.dl-card .meta b{color:var(--gold-l)}
+.dl-card .btn{margin-top:26px;width:100%;justify-content:center}
+.btn-dl{background:linear-gradient(120deg,var(--gold-d),var(--gold));color:#1a1204;font-size:15px;padding:13px 0}
+.btn-dl:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(212,175,55,.45)}
+/* ---------- 网页版 ---------- */
+.web-sec{position:relative}
+.web-card{background:linear-gradient(150deg,rgba(212,175,55,.10),rgba(10,10,16,.4) 45%),var(--card);border:1px solid var(--line);border-radius:26px;padding:60px 40px;text-align:center;overflow:hidden}
+.web-card h2{font-size:clamp(26px,4vw,38px);letter-spacing:4px;font-weight:800}
+.web-card .web-ico{font-size:44px;margin-bottom:16px}
+.web-card p{color:var(--text2);margin:16px auto 0;max-width:520px;line-height:1.9;font-size:14.5px;letter-spacing:1px}
+.web-card .btn{margin-top:30px}
+.web-url{margin-top:18px;font-size:13px;color:var(--text3);letter-spacing:1px}
+.web-url code{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;color:var(--gold-l);border:1px solid var(--line)}
+/* ---------- 页脚 ---------- */
+.foot{margin-top:40px;border-top:1px solid rgba(212,175,55,.12);padding:44px 22px;text-align:center;color:var(--text3)}
+.foot .brand-l{font-size:18px;letter-spacing:4px;color:var(--text2);margin-bottom:12px}
+.foot .copy{font-size:12px;letter-spacing:1px;line-height:2}
+.foot .xim{font-size:12.5px;letter-spacing:1px;color:var(--text3);opacity:.75;margin-top:14px}
+/* ---------- 动效 ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.fade{opacity:0}
+.fade.in{animation:fadeUp .8s ease forwards}
+@media(max-width:720px){
+  .nav-links a:not(.nav-cta){display:none}
+  .hero{padding:130px 18px 60px}
+  .sec{padding:64px 18px}
+  .web-card{padding:44px 22px}
+}
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top">
+      <img src="logo.png" alt="喜档管家">
+      <b>喜档管家</b>
+    </a>
+    <div class="nav-links">
+      <a href="#feats">功能介绍</a>
+      <a href="#download">下载客户端</a>
+      <a href="#web">网页版</a>
+      <a class="nav-cta" href="#download">立即下载</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero" id="top">
+  <div class="deco deco-1"></div><div class="deco deco-2"></div>
+  <div class="wrap">
+    <img class="logo" src="logo.png" alt="喜档管家 Logo">
+    <h1>喜档管家</h1>
+    <div class="slogan">天下喜事 · 有你而庆</div>
+    <p class="desc">专为婚庆行业打造的档期管理与广场社交一体化平台。<br>档期排布、人员调度、酒店统筹、留言广场，一个客户端全部搞定，云端实时同步。</p>
+    <div class="hero-btns">
+      <a class="btn btn-gold" href="#download">⬇ 下载客户端</a>
+      <a class="btn btn-ghost" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">▶ 在线使用网页版</a>
+    </div>
+    <div class="ver-tip">最新版本 <b>v1.1.0</b> · 支持 Android / Windows / macOS（Apple 芯片）· 永久免费</div>
+  </div>
+</header>
+
+<!-- 功能 -->
+<section class="sec" id="feats">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="k">Features</div>
+      <h2>为婚庆而生的一站式管家</h2>
+      <p>从接单到交付，从内部协作到行业交流，喜档管家覆盖全部场景</p>
+    </div>
+    <div class="feats">
+      <div class="feat fade"><div class="ic">📅</div><h3>档期管理</h3><p>订单一目了然，按日查看档期，人员到场时间、新郎抵达时间、拍摄选项清晰记录，备注随心。</p></div>
+      <div class="feat fade"><div class="ic">🗓</div><h3>后两日订单提醒</h3><p>客户端顶部滚动展示近一周订单，提前两日每日提醒一次拍摄安排，重要日子绝不遗漏。</p></div>
+      <div class="feat fade"><div class="ic">🏨</div><h3>酒店 · 厅 · 策划师</h3><p>酒店与厅名、策划师建立从属目录，下拉菜单一键选择，新数据自动归类入库，越用越顺手。</p></div>
+      <div class="feat fade"><div class="ic">👥</div><h3>人员调度</h3><p>摄影师 / 摄像师 / 主持人 / 化妆师统一人员表，同一天一人只能安排一次，防止冲突重复。</p></div>
+      <div class="feat fade"><div class="ic">💬</div><h3>留言广场</h3><p>摄影师区、摄像师区、主持人区、化妆师区、供求信息，发布主题与评论，供需对接、同行交流。</p></div>
+      <div class="feat fade"><div class="ic">☁️</div><h3>云端实时同步</h3><p>账号登录即拉取云端最新数据，任何修改实时上传，多设备登录保持一致，数据永不丢失。</p></div>
+      <div class="feat fade"><div class="ic">👑</div><h3>主账号 / 子账号</h3><p>主账号统一管理子账号与全部数据；子账号只读查看，权限清晰，多人协作无忧。</p></div>
+      <div class="feat fade"><div class="ic">🛡</div><h3>多端覆盖</h3><p>Android / Windows / macOS 原生安装包 + 网页版，随时随地打开即用，数据全端互通。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 下载 -->
+<section class="sec" id="download" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="k">Download</div>
+      <h2>下载客户端</h2>
+      <p>选择你的设备，下载安装包，登录即可使用 · 当前版本 v1.1.0</p>
+    </div>
+    <div class="dl-grid">
+      <div class="dl-card fade">
+        <div class="os">🤖</div>
+        <h3>Android</h3>
+        <div class="meta">安装包 <b>APK</b> · 约 4 MB · Android 5.1+</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/%E5%96%9C%E6%A1%A3%E7%AE%A1%E5%AE%B6-1.1.0.apk" download>⬇ 下载安卓版</a>
+      </div>
+      <div class="dl-card fade">
+        <div class="os">🪟</div>
+        <h3>Windows</h3>
+        <div class="meta">安装包 <b>EXE</b> · 约 86 MB · Windows 7+ x64</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/%E5%96%9C%E6%A1%A3%E7%AE%A1%E5%AE%B6%20Setup%201.1.0.exe" download>⬇ 下载 Windows 版</a>
+      </div>
+      <div class="dl-card fade">
+        <div class="os">🍎</div>
+        <h3>macOS</h3>
+        <div class="meta">安装包 <b>DMG</b> · 约 107 MB · Apple 芯片（M 系列）</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/%E5%96%9C%E6%A1%A3%E7%AE%A1%E5%AE%B6-1.1.0-arm64.dmg" download>⬇ 下载 Mac 版</a>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--text3);font-size:12.5px;margin-top:26px;letter-spacing:1px">💡 提示：安装时如遇系统安全提示，请选择「仍要打开 / 更多信息 → 仍要运行」；Mac 用户首次打开请右键图标选择「打开」。</p>
+  </div>
+</section>
+
+<!-- 网页版 -->
+<section class="sec" id="web">
+  <div class="wrap">
+    <div class="web-card fade">
+      <div class="web-ico">🌐</div>
+      <h2>网页版 · 免安装即用</h2>
+      <p>无需下载，浏览器打开即可登录使用。与客户端数据完全互通，电脑、手机、平板随时切换，适合快速查看档期与广场动态。</p>
+      <a class="btn btn-gold" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">▶ 立即体验网页版</a>
+      <div class="web-url">访问地址：<code>https://mjz1024.github.io/maodou-schedule/</code></div>
+    </div>
+  </div>
+</section>
+
+<!-- 页脚 -->
+<footer class="foot">
+  <div class="brand-l">喜档管家</div>
+  <div class="copy">天下喜事 · 有你而庆<br>婚庆档期智能管理平台 · 多端覆盖 · 云端同步</div>
+  <div class="xim">————FROM XIMAVISION————</div>
+</footer>
+
+<script>
+// 滚动渐入
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+document.querySelectorAll('.fade').forEach(function(el){io.observe(el);});
+</script>
+</body>
+</html>
