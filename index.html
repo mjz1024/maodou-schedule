@@ -6900,15 +6900,15 @@ function bindEvents(){
   document.querySelectorAll('[data-close]').forEach(function(b){
     b.onclick=function(){ closeModal(b.dataset.close); };
   });
-  // 记录按下目标：备注等文本框中框选文字拖到遮罩上松开时不关闭弹窗
+  // 记录按下目标：备注等文本框中按下后拖到遮罩上松开时不关闭弹窗（框选文字场景）
   let downTarget=null;
   document.addEventListener('mousedown', function(e){ downTarget=e.target; }, true);
   document.querySelectorAll('.modal-mask').forEach(function(mask){
     mask.addEventListener('click', function(e){
       if(e.target!==mask) return;
-      const sel=window.getSelection&&window.getSelection();
-      const inEdit=downTarget && downTarget.closest && (downTarget.closest('textarea')||downTarget.closest('input')||downTarget.closest('[contenteditable]'));
-      if(inEdit && sel && sel.toString() && sel.toString().length>0){ downTarget=null; return; }
+      // 按下点在编辑框内、松开点在遮罩上：视为框选拖出，不关闭
+      const inEdit=downTarget && downTarget.closest && downTarget.closest('textarea, input, [contenteditable]');
+      if(inEdit){ downTarget=null; return; }
       downTarget=null;
       closeModal(mask.id);
     });
