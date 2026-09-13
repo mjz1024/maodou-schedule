@@ -465,7 +465,7 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .tree-add button{flex-shrink:0}
 
 /* FAB */
-.fab{position:fixed;right:18px;bottom:34px;z-index:150;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(230,70,124,.4);transition:transform .15s}
+.fab{position:fixed;right:18px;bottom:70px;z-index:150;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(230,70,124,.4);transition:transform .15s}
 .fab:active{transform:scale(.92)}
 @media(min-width:768px){.fab{bottom:12px}}
 
@@ -6411,6 +6411,23 @@ async function handleLogin(){
         user=lu;
       }
     }
+    // ②.5 云端快速校验失败时，拉取 users 集合再校验一次（防止老用户被误判为新账号）
+    if(!user && cloudOK && navigator.onLine){
+      try{
+        const usersD=await getAllDocs('users');
+        const found=usersD.find(function(x){ return x&&x.username===username; });
+        if(found){
+          if(found._deleted){ toast('该账号已被删除','error'); return; }
+          if(found.password===password){
+            user={id:found.id, username:found.username, password:found.password, nickname:found.nickname||found.username, role:found.role||'master', phone:found.phone||'', createdAt:found.createdAt||new Date().toISOString(), visitCount:found.visitCount||1, ownerId:found.ownerId||null};
+            const users=DB.getUsers();
+            const i=users.findIndex(function(u){ return u.id===found.id; });
+            if(i>=0) users[i]=Object.assign({}, users[i], user); else users.push(user);
+            DB.setUsers(users); markDirty('users');
+          }else{ toast('用户名或密码错误','error'); return; }
+        }
+      }catch(e){ console.warn('[cloud] 登录重试校验失败', e); }
+    }
     // ③ 新用户名 → 自动注册（需用户确认后进入）
     if(!user){
       if(!confirm('未找到账号「'+username+'」\n是否确认创建为新主账号并登录？')){
@@ -6954,6 +6971,20 @@ async function autoLoginIfRemembered(){
     if(!user){
       const lu=DB.getUsers().find(function(u){ return u.username===s.username; });
       if(lu && lu.password===s.password && !lu._deleted) user=lu;
+    }
+    // 云端快速校验失败时，拉取 users 集合再校验一次（防止老用户被误判）
+    if(!user && cloudOK && navigator.onLine){
+      try{
+        const usersD=await getAllDocs('users');
+        const found=usersD.find(function(x){ return x&&x.username===s.username; });
+        if(found && !found._deleted && found.password===s.password){
+          user={id:found.id, username:found.username, password:found.password, nickname:found.nickname||found.username, role:found.role||'master', phone:found.phone||'', createdAt:found.createdAt||new Date().toISOString(), visitCount:found.visitCount||1, ownerId:found.ownerId||null};
+          const users=DB.getUsers();
+          const i=users.findIndex(function(u){ return u.id===found.id; });
+          if(i>=0) users[i]=Object.assign({}, users[i], user); else users.push(user);
+          DB.setUsers(users); markDirty('users');
+        }
+      }catch(e){ console.warn('[cloud] 自动登录重试校验失败', e); }
     }
     if(!user) return false;
     await loginComplete(user, {quick:true, silent:true});
