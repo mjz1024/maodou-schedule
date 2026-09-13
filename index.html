@@ -209,6 +209,14 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 
 /* 日历 */
 .calendar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+/* 当日人员占用 */
+.occ-panel{margin-top:10px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 12px}
+.occ-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.occ-title .occ-date{color:var(--text3);font-weight:600;font-size:12px}
+.occ-list{display:flex;flex-wrap:wrap;gap:7px}
+.occ-chip{display:inline-block;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;background:var(--input-bg);color:var(--text1);border:1px solid var(--border)}
+.occ-chip.occ-busy{background:var(--bg);color:var(--text3);border-color:var(--border);opacity:.65;text-decoration:line-through}
+.occ-chip.occ-empty-hint{background:transparent;border-style:dashed;color:var(--text3);font-weight:400}
 .cal-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
 .cal-nav{display:flex;align-items:center;gap:6px}
 .cal-nav button{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--input-bg);font-size:16px;color:var(--text2)}
@@ -4016,6 +4024,29 @@ function renderCalendar(){
       '</div>';
   }
   html+='</div></div>';
+  /* 当日人员占用：日历下方显示选中日期（默认今天）全部人员占用情况，被占用名字变灰 */
+  const occDate=selectedDate||today;
+  const dayScheds=scheds.filter(function(s){ return s.shootDate===occDate; });
+  const occSet={};
+  dayScheds.forEach(function(s){
+    if(s.photographer) occSet[s.photographer]=true;
+    if(s.secondPhotographer) occSet[s.secondPhotographer]=true;
+  });
+  const midOcc=getCurrentMasterId()||'_default';
+  const peopleArr=DB.getPhoto(midOcc).slice();
+  const allPeople=[];
+  peopleArr.forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
+  Object.keys(occSet).forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
+  if(allPeople.length){
+    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · '+dayScheds.length+'单</span></div><div class="occ-list">';
+    allPeople.forEach(function(nm){
+      const busy=!!occSet[nm];
+      html+='<span class="occ-chip'+(busy?' occ-busy':'')+'"'+(busy?' title="当天已占用"':' title="当天空闲"')+'>'+esc(nm)+(busy?' 已排':'')+'</span>';
+    });
+    html+='</div></div>';
+  } else {
+    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+'</span></div><div class="occ-list"><span class="occ-chip occ-empty-hint">人员库为空，请到「管理」添加人员</span></div></div>';
+  }
   cont.innerHTML=html;
   $('calPrev').onclick=function(){ calMonth--; if(calMonth<0){ calMonth=11; calYear--; } renderCalendar(); };
   $('calNext').onclick=function(){ calMonth++; if(calMonth>11){ calMonth=0; calYear++; } renderCalendar(); };
