@@ -465,9 +465,16 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .tree-add button{flex-shrink:0}
 
 /* FAB */
-.fab{position:fixed;right:18px;bottom:86px;z-index:150;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(230,70,124,.4);transition:transform .15s}
+.fab{position:fixed;right:18px;bottom:34px;z-index:150;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(230,70,124,.4);transition:transform .15s}
 .fab:active{transform:scale(.92)}
-@media(min-width:768px){.fab{bottom:30px}}
+@media(min-width:768px){.fab{bottom:12px}}
+
+/* 登录后数据加载进度条 */
+#dataLoadBar{position:fixed;top:0;left:0;right:0;z-index:99999;height:38px;display:flex;align-items:center;justify-content:center;background:rgba(20,18,28,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;font-size:13.5px;letter-spacing:2px;overflow:hidden}
+#dataLoadFill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,var(--primary),var(--primary2));opacity:.85;transition:width .35s}
+#dataLoadText{position:relative;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+/* 下拉刷新指示 */
+#pullHint{position:fixed;top:0;left:0;right:0;z-index:9998;display:none;align-items:center;justify-content:center;height:52px;font-size:14px;letter-spacing:2px;color:var(--primary,#e6467c);background:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(0,0,0,.08)}
 
 /* 底部操作栏（主题详情） */
 .detail-toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
@@ -2768,6 +2775,8 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
 </script>
 </head>
 <body>
+<!-- 登录后数据加载进度条 -->
+<div id="dataLoadBar" class="hidden"><div id="dataLoadFill"></div><span id="dataLoadText">正在加载数据，请稍候…</span></div>
 
 <!-- ==================== 登录页 ==================== -->
 <div class="auth-page" id="authPage">
@@ -2830,7 +2839,6 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
           <span class="hu-caret">▾</span>
         </div>
         <button class="logout-btn" id="headerLogoutBtn" title="退出登录">退出</button>
-        <button class="icon-btn" id="headerSyncBtn" title="立即同步">⟳</button>
       </div>
     </div>
   </div>
@@ -3297,10 +3305,18 @@ async function initCloud(){
     }
     cloudOK=true;
     setSyncState('busy');
-    await pullAllToLocal(true);      // 登录前先拉最新
-    await pushAllCollections();      // 补推本地未同步内容
-    setSyncState('on');
-    startWatchers();
+    // 后台异步拉取，不阻塞页面（登录后仍会带进度条完整同步）
+    setTimeout(function(){
+      (async function(){
+        try{
+          await pullAllToLocal(true, null);
+          await pushAllCollections();
+          setSyncState('on');
+          startWatchers();
+          if(currentUser){ renderAll(); refreshPhotographerFilter(); }
+        }catch(e){ console.warn('[cloud] 后台初始化同步失败', e); setSyncState('on'); startWatchers(); }
+      })();
+    }, 0);
     checkAppUpdate();   // 检测云端是否有新版本（强制更新）
     return true;
   }catch(e){
@@ -3348,8 +3364,11 @@ async function getAllDocs(name){
 }
 
 /* 全量拉取：云端 → 本地（REPLACE 覆盖；dirty 集合跳过以避免覆盖未同步的本地修改） */
-async function pullAllToLocal(force){
+async function pullAllToLocal(force, onProgress){
   if(!cloudOK) return false;
+  const _pT=['users','schedules','settings','day_settings','sessions','photographers','hotels','operation_log','plaza_topics','plaza_comments'];
+  let _pi=0;
+  const _stepP=function(label){ if(onProgress){ _pi++; onProgress(Math.min(_pi,_pT.length), _pT.length, label); } };
   const skip=function(c){ return dirty.has(c); };
   const myMid=getCurrentMasterId();   // 未登录时为 null：跳过私有集合，避免混合
   // 通用合并：以 id 去重。云端同 id 多份先按 _syncAt 取最新（用户清空/最新保存优先），再与本地合并：
@@ -3385,6 +3404,7 @@ async function pullAllToLocal(force){
       const valid=usersD.filter(function(x){return x&&x.id&&x.username&&!deletedIds[x.id];});
       if(valid.length>0) DB.setUsers(mergeById(DB.getUsers(), valid).filter(function(x){ return x&&!x._deleted; }));
     }
+    _stepP('账号');
     const cloudUserIds={};
     DB.getUsers().forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
 
@@ -3404,7 +3424,7 @@ async function pullAllToLocal(force){
         }
       }
     }
-
+    _stepP('档期');
     if(!skip('settings')){
       const d=await getAllDocs('settings');
       const map={};
@@ -3419,6 +3439,7 @@ async function pullAllToLocal(force){
       }
       DB.setSettings(cur);
     }
+    _stepP('设置');
     if(myMid && !skip('day_settings')){
       const d=await getAllDocs('day_settings');
       const map={};
@@ -3429,11 +3450,13 @@ async function pullAllToLocal(force){
         DB.setDaySettings(cur);
       }
     }
+    _stepP('日程设置');
     if(!skip('sessions')){
       const d=await getAllDocs('sessions');
       const mine=d.filter(function(x){ return x&&x.type!=='qr_login'&&x.type!=='online'&&(x.username===currentUser.username||x.userId===currentUser.id); });
       if(mine.length>0) DB.setSessions(mergeById(DB.getSessions(), mine));
     }
+    _stepP('会话');
     if(!skip('photographers')){
       const d=await getAllDocs('photographers');
       const by={};
@@ -3445,6 +3468,7 @@ async function pullAllToLocal(force){
       });
       if(force && myMid && by[myMid]===undefined) DB.setPhoto(myMid, []);
     }
+    _stepP('人员');
     if(!skip('hotels')){
       const d=await getAllDocs('hotels');
       const by={};
@@ -3468,6 +3492,7 @@ async function pullAllToLocal(force){
       });
       if(force && myMid && by[myMid]===undefined) DB.setHotels(myMid, []);
     }
+    _stepP('酒店');
     if(!skip('operation_log')){
       const d=await getAllDocs('operation_log');
       const by={};
@@ -3478,16 +3503,19 @@ async function pullAllToLocal(force){
         DB.setOpLog(m, cur);
       });
     }
+    _stepP('操作日志');
     if(!skip('plaza_topics')){
       const d=await getAllDocs('plaza_topics');
       const valid=d.filter(function(x){return x&&x.id&&x.title;});
       if(valid.length>0) DB.setPlazaTopics(mergeById(DB.getPlazaTopics(), valid));
     }
+    _stepP('广场帖子');
     if(!skip('plaza_comments')){
       const d=await getAllDocs('plaza_comments');
       const valid=d.filter(function(x){return x&&x.id&&x.topicId;});
       if(valid.length>0) DB.setPlazaComments(mergeById(DB.getPlazaComments(), valid));
     }
+    _stepP('广场评论');
     return true;
   }catch(e){ console.warn('[cloud] pull 异常', e); return false; }
 }
@@ -6342,6 +6370,7 @@ function doLogout(){
   currentUser=null;
   activeTopicId=null;
   activeTab='schedule';
+  try{ localStorage.removeItem('xgd_remember'); }catch(e){}
   hide('mainApp'); show('authPage');
   if(qrTimer){ clearInterval(qrTimer); qrTimer=null; }
   refreshAuthWelcomeSig();
@@ -6354,25 +6383,51 @@ async function handleLogin(){
   const btn=$('loginBtn');
   btn.disabled=true; btn.textContent='登录中…';
   try{
-    // 登录前强制拉取云端最新（保证同一账号每次登录都读到最新数据）
-    if(cloudOK && navigator.onLine){ await pullAllToLocal(true); }
-    let users=DB.getUsers();
-    let user=users.find(function(u){ return u.username===username; });
-    if(!user){
-      // 新用户名 → 自动注册为主账号（用户名全局唯一：云端用户表已同步，查过不存在）
-      user={id:uid('u'), username:username, password:password, nickname:username, role:'master', phone:'', createdAt:new Date().toISOString(), visitCount:1, ownerId:null};
-      users.push(user);
-      DB.setUsers(users);
-      markDirty('users');
-      await flushPush();
-      toast('已自动注册为主账号','ok');
-    }else{
-      if(user.password!==password){ toast('用户名或密码错误','error'); return; }
-      user.loginMethod='password';
-      DB.setUsers(users);
-      markDirty('users');
+    let user=null;
+    // ① 云端快速校验：单条查询，不再等全量拉取
+    if(cloudOK && navigator.onLine){
+      try{
+        const r=await cloudDB.collection('users').where({username:username}).limit(1).get();
+        const d=(r&&r.data&&r.data[0]);
+        if(d && d._deleted){ toast('该账号已被删除','error'); return; }
+        if(d){
+          if(d.password===password){
+            user={id:d.id, username:d.username, password:d.password, nickname:d.nickname||d.username, role:d.role||'master', phone:d.phone||'', createdAt:d.createdAt||new Date().toISOString(), visitCount:d.visitCount||1, ownerId:d.ownerId||null};
+            const users=DB.getUsers();
+            const i=users.findIndex(function(u){ return u.id===d.id; });
+            if(i>=0) users[i]=Object.assign({}, users[i], user); else users.push(user);
+            DB.setUsers(users); markDirty('users');
+          }else{ toast('用户名或密码错误','error'); return; }
+        }
+      }catch(e){ console.warn('[cloud] 快速校验失败，走本地兜底', e); }
     }
-    await loginComplete(user);
+    // ② 本地校验兜底（离线或云端未命中）
+    if(!user){
+      const users=DB.getUsers();
+      const lu=users.find(function(u){ return u.username===username; });
+      if(lu){
+        if(lu._deleted){ toast('该账号已被删除','error'); return; }
+        if(lu.password!==password){ toast('用户名或密码错误','error'); return; }
+        user=lu;
+      }
+    }
+    // ③ 新用户名 → 自动注册（需用户确认后进入）
+    if(!user){
+      if(!confirm('未找到账号「'+username+'」\n是否确认创建为新主账号并登录？')){
+        toast('已取消注册','ok'); return;
+      }
+      user={id:uid('u'), username:username, password:password, nickname:username, role:'master', phone:'', createdAt:new Date().toISOString(), visitCount:1, ownerId:null};
+      const users=DB.getUsers(); users.push(user); DB.setUsers(users); markDirty('users');
+      if(cloudOK && navigator.onLine){
+        try{ await flushPush(); toast('已自动注册为主账号','ok'); }
+        catch(e){ console.warn('[cloud] 注册推送失败', e); }
+      } else { toast('已自动注册为主账号（离线）','ok'); }
+    }else{
+      user.loginMethod='password';
+    }
+    // 记住登录态：安卓/客户端保持在线，重开软件自动登录
+    try{ localStorage.setItem('xgd_remember', JSON.stringify({username:user.username, password:user.password})); }catch(e){}
+    await loginComplete(user, {quick:true});
   }catch(e){
     console.warn(e);
     toast('登录异常：'+e.message,'error');
@@ -6497,7 +6552,8 @@ async function showQrConfirm(code){
   clearUrlScan();
 }
 /* 登录后公共流程：写会话 → 云端补拉补推 → 进入主界面 */
-async function loginComplete(user){
+async function loginComplete(user, opts){
+  opts=opts||{};
   currentUser=user;
   renderHeaderUser();
   DB.setSession({
@@ -6514,36 +6570,6 @@ async function loginComplete(user){
   });
   DB.setSessions(sessions);
   markDirty('sessions');
-  // 登录后再拉取一次并补推（云端为真相源）
-  let statRecorded=false;
-  if(cloudOK && navigator.onLine){
-    // 清理初始化时可能残留的空集合标记，确保登录即拉取最新数据
-    // （档期、人员、酒店、账号、设置、广场等全部集合，云端为真相源，本地独有数据保留）
-    ['schedules','day_settings','operation_log','photographers','hotels','users','settings','plaza_topics','plaza_comments','sessions'].forEach(function(n){ dirty.delete(n); });
-    await pullAllToLocal(true);
-    await pushAllCollections();
-    // 重新解析当前用户（云端可能更新了用户数据）
-    currentUser=DB.getUsers().find(function(u2){ return u2.id===user.id; })||user;
-    // 登录统计（拉取合并完成后记录，避免被云端旧数据覆盖；随后推送云端）
-    recordUserLogin(currentUser); statRecorded=true;
-    DB.setUsers(DB.getUsers());
-    markDirty('users');
-    try{ await flushPush(); }catch(e){}
-    // 唯一在线改：同账号最多 3 台设备同时在线（新增在线记录；被挤出的旧设备自行检测退出）
-    try{
-      await cloudDB.collection('sessions').add({
-        type:'online', userId:user.id, username:user.username,
-        deviceId:DB.getDeviceId(), deviceName:getDeviceName(), loginAt:new Date().toISOString()
-      });
-      myLoginStamp=new Date().toISOString();
-    }catch(e){ console.warn('[cloud] 在线登记失败', e); }
-  }
-  // 离线登录也记录登录统计
-  if(!statRecorded && currentUser){
-    recordUserLogin(currentUser);
-    DB.setUsers(DB.getUsers());
-    markDirty('users'); schedulePush();
-  }
   ensureSettingsShape();
   // 初始化日历到当前月
   const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
@@ -6553,9 +6579,61 @@ async function loginComplete(user){
   switchTab('schedule');
   renderAll();
   refreshPhotographerFilter();
-  toast('欢迎，'+(currentUser.nickname||currentUser.username));
+  if(!opts.silent) toast('欢迎，'+(currentUser.nickname||currentUser.username));
   // 扫码登录：手机端打开带 scan 参数的链接时，登录后立即进入确认
   checkPendingScan();
+  // 云端在线：先登录成功，后台异步同步 + 顶部进度条
+  if(cloudOK && navigator.onLine){ syncCloudAfterLogin(user); }
+  else{
+    recordUserLogin(currentUser);
+    DB.setUsers(DB.getUsers());
+    markDirty('users'); schedulePush();
+  }
+}
+/* 登录后数据加载进度条 */
+function showLoadBar(pct,text){
+  const bar=$('dataLoadBar'); if(!bar) return;
+  const fill=$('dataLoadFill'), tx=$('dataLoadText');
+  bar.classList.remove('hidden');
+  if(fill) fill.style.width=Math.max(0,Math.min(100,pct))+'%';
+  if(tx) tx.textContent=text||('数据正在加载，请稍候… '+Math.round(pct)+'%');
+}
+function hideLoadBar(){ const bar=$('dataLoadBar'); if(bar) bar.classList.add('hidden'); }
+/* 登录后后台同步：进度条下拉云端数据 */
+async function syncCloudAfterLogin(user){
+  try{
+    ['schedules','day_settings','operation_log','photographers','hotels','users','settings','plaza_topics','plaza_comments','sessions'].forEach(function(n){ dirty.delete(n); });
+    showLoadBar(0,'数据正在加载，请稍候…');
+    await pullAllToLocal(true, function(done,total,label){
+      const pct=Math.round(done/total*100);
+      showLoadBar(pct, '数据正在加载，请稍候… '+pct+'%');
+    });
+    showLoadBar(96,'正在同步数据，请稍候…');
+    await pushAllCollections();
+    // 重新解析当前用户（云端可能更新了用户数据）
+    currentUser=DB.getUsers().find(function(u2){ return u2.id===user.id; })||user;
+    // 登录统计（拉取合并完成后记录，避免被云端旧数据覆盖；随后推送云端）
+    recordUserLogin(currentUser);
+    DB.setUsers(DB.getUsers());
+    markDirty('users');
+    try{ await flushPush(); }catch(e){}
+    // 在线登记：同账号最多 3 台设备同时在线
+    try{
+      await cloudDB.collection('sessions').add({
+        type:'online', userId:user.id, username:user.username,
+        deviceId:DB.getDeviceId(), deviceName:getDeviceName(), loginAt:new Date().toISOString()
+      });
+      myLoginStamp=new Date().toISOString();
+    }catch(e){ console.warn('[cloud] 在线登记失败', e); }
+    showLoadBar(100,'数据加载完成');
+    setTimeout(hideLoadBar, 700);
+    renderHeaderUser();
+    renderAll();
+    refreshPhotographerFilter();
+  }catch(e){
+    console.warn('[cloud] 登录后同步异常', e);
+    hideLoadBar();
+  }
 }
 /* ============ 导航 ============ */
 function switchTab(tab){
@@ -6630,8 +6708,9 @@ function bindEvents(){
   if($('filterPhotographer')) $('filterPhotographer').onchange=function(){ renderScheduleList(); };
   if($('filterKeyword')) $('filterKeyword').addEventListener('input', debounce(function(){ renderScheduleList(); }, 250));
 
-  // 头部的立即同步
-  $('headerSyncBtn').onclick=function(){
+  // 手动同步（下拉刷新 / 其他入口调用）
+  window.doManualSync=function(){
+    if(!cloudOK){ toast('离线模式，无法同步','error'); return; }
     toast('正在同步…');
     (async function(){
       await pullAllToLocal(true);
@@ -6641,6 +6720,36 @@ function bindEvents(){
       toast('已同步到最新','ok');
     })();
   };
+  // 下拉刷新（触屏 + 鼠标拖动，页面顶部下拉触发）
+  (function(){
+    if(document.getElementById('pullHint')) return;
+    const ind=document.createElement('div');
+    ind.id='pullHint'; document.body.appendChild(ind);
+    let pulling=false, pullStart=0, pullDist=0, mdown=null;
+    function setPull(txt,show){ ind.textContent=txt||''; ind.style.display=show?'flex':'none'; }
+    document.addEventListener('touchstart', function(e){
+      if(window.scrollY<=0 && activeTab==='schedule'){ pulling=true; pullStart=e.touches[0].clientY; pullDist=0; }
+    }, {passive:true});
+    document.addEventListener('touchmove', function(e){
+      if(!pulling) return;
+      pullDist=e.touches[0].clientY-pullStart;
+      if(pullDist>0) setPull(pullDist>=70?'释放立即刷新':'下拉刷新', true);
+    }, {passive:true});
+    document.addEventListener('touchend', function(){
+      if(!pulling) return;
+      const d=pullDist; pulling=false; setPull('',false);
+      if(d>=70 && typeof doManualSync==='function') doManualSync();
+    });
+    document.addEventListener('mousedown', function(e){
+      if(e.button===0 && window.scrollY<=0 && activeTab==='schedule') mdown=e.clientY;
+    });
+    document.addEventListener('mousemove', function(e){
+      if(mdown!=null){ const d=e.clientY-mdown; if(d>6) setPull(d>=70?'释放立即刷新':'下拉刷新', true); }
+    });
+    document.addEventListener('mouseup', function(e){
+      if(mdown!=null){ const d=e.clientY-mdown; mdown=null; setPull('',false); if(d>=70 && typeof doManualSync==='function') doManualSync(); }
+    });
+  })();
 
   // 右上角用户菜单
   $('headerUserChip').onclick=function(){ openUserMenu(); };
@@ -6774,8 +6883,18 @@ function bindEvents(){
   document.querySelectorAll('[data-close]').forEach(function(b){
     b.onclick=function(){ closeModal(b.dataset.close); };
   });
+  // 记录按下目标：备注等文本框中框选文字拖到遮罩上松开时不关闭弹窗
+  let downTarget=null;
+  document.addEventListener('mousedown', function(e){ downTarget=e.target; }, true);
   document.querySelectorAll('.modal-mask').forEach(function(mask){
-    mask.addEventListener('click', function(e){ if(e.target===mask) closeModal(mask.id); });
+    mask.addEventListener('click', function(e){
+      if(e.target!==mask) return;
+      const sel=window.getSelection&&window.getSelection();
+      const inEdit=downTarget && downTarget.closest && (downTarget.closest('textarea')||downTarget.closest('input')||downTarget.closest('[contenteditable]'));
+      if(inEdit && sel && sel.toString() && sel.toString().length>0){ downTarget=null; return; }
+      downTarget=null;
+      closeModal(mask.id);
+    });
   });
 
   // 跨标签页同步
@@ -6809,16 +6928,54 @@ function bindEvents(){
   }
 }
 
+/* 记住登录态：重开软件/刷新页面自动登录（保持前一次登录账号密码） */
+async function autoLoginIfRemembered(){
+  try{
+    let saved=null;
+    try{ saved=localStorage.getItem('xgd_remember'); }catch(e){}
+    if(!saved) return false;
+    const s=JSON.parse(saved);
+    if(!s || !s.username || !s.password) return false;
+    let user=null;
+    // 云端快速校验（在线）
+    if(cloudOK && navigator.onLine){
+      try{
+        const r=await cloudDB.collection('users').where({username:s.username}).limit(1).get();
+        const d=(r&&r.data&&r.data[0]);
+        if(d && !d._deleted && d.password===s.password){
+          user={id:d.id, username:d.username, password:d.password, nickname:d.nickname||d.username, role:d.role||'master', phone:d.phone||'', createdAt:d.createdAt||new Date().toISOString(), visitCount:d.visitCount||1, ownerId:d.ownerId||null};
+          const users=DB.getUsers();
+          const i=users.findIndex(function(u){ return u.id===d.id; });
+          if(i>=0) users[i]=Object.assign({}, users[i], user); else users.push(user);
+          DB.setUsers(users); markDirty('users');
+        }
+      }catch(e){ console.warn('[cloud] 自动登录快速校验失败', e); }
+    }
+    if(!user){
+      const lu=DB.getUsers().find(function(u){ return u.username===s.username; });
+      if(lu && lu.password===s.password && !lu._deleted) user=lu;
+    }
+    if(!user) return false;
+    await loginComplete(user, {quick:true, silent:true});
+    return true;
+  }catch(e){ console.warn('[auto login]', e); return false; }
+}
 async function boot(){
   bindEvents();
   setSyncState('busy');
   const hasCloud=await initCloud();
   if(!hasCloud) setSyncState('off');
   ensureSettingsShape();
-  // 扫码或打开网址后默认未登录：清除历史会话，一律展示登录页（登录后才进入首页）
-  DB.setSession(null);
-  show('authPage');
-  startQrLogin();         // 登录页展示扫码登录二维码
+  // 扫码打开默认未登录；正常打开则尝试自动登录（记住上次账号）
+  const isScan=location.search.indexOf('scan=')>=0;
+  let autoLogged=false;
+  if(!isScan){ autoLogged=await autoLoginIfRemembered(); }
+  if(!autoLogged){
+    // 清除历史会话，展示登录页（登录后才进入首页）
+    DB.setSession(null);
+    show('authPage');
+    startQrLogin();         // 登录页展示扫码登录二维码
+  }
   if(hasCloud){ startHeartbeat(); startReminderLoop(); }
   checkPendingScan();     // 未登录也记录 scan 参数，登录后确认
 }
