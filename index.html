@@ -3477,7 +3477,7 @@ async function pullAllToLocal(force, onProgress){
     if(!skip('photographers')){
       const d=await getAllDocs('photographers');
       const by={};
-      d.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid) (by[m]=by[m]||[]).push(x.name); } });
+      d.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid && String(x.name).indexOf('喜玛拾光')<0) (by[m]=by[m]||[]).push(x.name); } });
       Object.keys(by).forEach(function(m){
         const cur=DB.getPhoto(m).slice();
         by[m].forEach(function(nm){ if(cur.indexOf(nm)<0) cur.push(nm); });
@@ -3583,6 +3583,7 @@ async function pushCollection(name){
     } else if(name==='photographers'){
       masterUsers.forEach(function(mu){
         DB.getPhoto(mu.id).forEach(function(name){
+          if(String(name).indexOf('喜玛拾光')>=0) return;
           items.push({_id:mu.id+'|'+name, name:name, _masterId:mu.id, _syncAt:cloudMeta()._syncAt, _env:CLOUDBASE_ENV, _device:DB.getDeviceId()});
         });
       });
@@ -4037,7 +4038,7 @@ function renderCalendar(){
     if(s.second2Photographer) occSet[s.second2Photographer]=true;
   });
   const midOcc=getCurrentMasterId()||'_default';
-  const peopleArr=DB.getPhoto(midOcc).slice();
+  const peopleArr=DB.getPhoto(midOcc).slice().filter(function(nm){ return String(nm).indexOf('喜玛拾光')<0; });
   const allPeople=[];
   peopleArr.forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
   Object.keys(occSet).forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
