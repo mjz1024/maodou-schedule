@@ -4295,7 +4295,7 @@ function refreshPhotographerFilter(){
   const sel=$('filterPhotographer');
   if(!sel) return;
   const cur=sel.value;
-  const list=DB.getPhoto(getCurrentMasterId()||'_default');
+  const list=DB.getPhoto(getCurrentMasterId()||'_default').filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   let html='<option value="">全部摄影师</option>';
   list.forEach(function(p){ html+='<option value="'+esc(p)+'"'+(cur===p?' selected':'')+'>'+esc(p)+'</option>'; });
   sel.innerHTML=html;
@@ -4348,7 +4348,7 @@ function dayOccupiedNames(dateStr, excludeId){
 }
 function personNameList(extra){
   const mid=getCurrentMasterId();
-  const list=DB.getPhoto(mid||'_default').slice();
+  const list=DB.getPhoto(mid||'_default').slice().filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   if(extra && list.indexOf(extra)<0) list.push(extra);
   return list;
 }
@@ -4396,7 +4396,7 @@ function renderPhotoPop(filter){
   const pop=$('photoPop'), input=$('fPhotographer');
   if(!pop||!input) return;
   const mid=getCurrentMasterId();
-  const people=DB.getPhoto(mid||'_default').slice();
+  const people=DB.getPhoto(mid||'_default').slice().filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   const curVal=input.value.trim();
   const dateStr=$('fShootDate').value;
   const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
@@ -4429,7 +4429,7 @@ function renderSecondPop(filter){
   const pop=$('secondPop'), input=$('fSecond');
   if(!pop||!input) return;
   const mid=getCurrentMasterId();
-  const people=DB.getPhoto(mid||'_default').slice();
+  const people=DB.getPhoto(mid||'_default').slice().filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   const curVal=input.value.trim();
   const mainVal=$('fPhotographer').value.trim();
   const dateStr=$('fShootDate').value;
@@ -4463,7 +4463,7 @@ function renderSecond2Pop(filter){
   const pop=$('second2Pop'), input=$('fSecond2');
   if(!pop||!input) return;
   const mid=getCurrentMasterId();
-  const people=DB.getPhoto(mid||'_default').slice();
+  const people=DB.getPhoto(mid||'_default').slice().filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   const curVal=input.value.trim();
   const mainVal=$('fPhotographer').value.trim();
   const secondVal=$('fSecond').value.trim();
@@ -4550,7 +4550,7 @@ function autoCategorizeInputs(mid){
   const secondVal=$('fSecond').value.trim();
   const second2Val=$('fSecond2').value.trim();
   // 1) 人员库（统一人员表）
-  const people=DB.getPhoto(mid||'_default').slice();
+  const people=DB.getPhoto(mid||'_default').slice().filter(function(p){return String(p).indexOf('喜玛拾光')<0;});
   let pChanged=false;
   [mainVal, secondVal, second2Val].forEach(function(nm){
     if(nm && people.indexOf(nm)<0){ people.push(nm); pChanged=true; }
