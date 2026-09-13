@@ -2988,8 +2988,11 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <div class="form-item"><label>酒店</label><input id="fHotel" list="dlHotel" placeholder="选择或输入新酒店" autocomplete="off"><datalist id="dlHotel"></datalist></div>
         <div class="form-item"><label>厅名</label><input id="fHall" list="dlHall" placeholder="选择或输入新厅名" autocomplete="off"><datalist id="dlHall"></datalist></div>
         <div class="form-item"><label>策划师</label><input id="fPlanner" list="dlPlanner" placeholder="选择或输入新策划师" autocomplete="off"><datalist id="dlPlanner"></datalist></div>
-        <div class="form-item"><label>人员</label><div class="person-pick"><input id="fPhotographer" placeholder="点击选择或输入新人员" autocomplete="off" style="flex:1"><div class="person-pop" id="photoPop" hidden></div></div><datalist id="dlPhoto"></datalist></div>
-        <div class="form-item"><label>副机位</label><div class="person-pick"><input id="fSecond" placeholder="点击选择或输入" autocomplete="off" style="flex:1"><div class="person-pop" id="secondPop" hidden></div></div><datalist id="dlSecond"></datalist></div>
+        <div class="form-row3">
+          <div class="form-item"><label style="font-size:12px">人员</label><div class="person-pick"><input id="fPhotographer" placeholder="选择" autocomplete="off" style="flex:1;font-size:12px;padding:6px 8px"><div class="person-pop" id="photoPop" hidden></div></div><datalist id="dlPhoto"></datalist></div>
+          <div class="form-item"><label style="font-size:12px">副机位</label><div class="person-pick"><input id="fSecond" placeholder="选择" autocomplete="off" style="flex:1;font-size:12px;padding:6px 8px"><div class="person-pop" id="secondPop" hidden></div></div><datalist id="dlSecond"></datalist></div>
+          <div class="form-item"><label style="font-size:12px">副2机位</label><div class="person-pick"><input id="fSecond2" placeholder="选择" autocomplete="off" style="flex:1;font-size:12px;padding:6px 8px"><div class="person-pop" id="second2Pop" hidden></div></div><datalist id="dlSecond2"></datalist></div>
+        </div>
         <div class="form-item"><label>下单日期</label><input id="fOrderDate" type="date"></div>
         <div class="form-item"><label>拍摄日期</label><input id="fShootDate" type="date"></div>
         <div class="form-item"><label>人员到场时间</label><input id="fArrival" type="time"></div>
@@ -4031,6 +4034,7 @@ function renderCalendar(){
   dayScheds.forEach(function(s){
     if(s.photographer) occSet[s.photographer]=true;
     if(s.secondPhotographer) occSet[s.secondPhotographer]=true;
+    if(s.second2Photographer) occSet[s.second2Photographer]=true;
   });
   const midOcc=getCurrentMasterId()||'_default';
   const peopleArr=DB.getPhoto(midOcc).slice();
@@ -4070,7 +4074,7 @@ function showUnschedModal(){
     list.forEach(function(s){
       html+='<div class="sched-card" data-id="'+esc(s.id)+'">'+
         '<div class="sched-main"><div class="sched-client">'+esc(s.clientName)+'</div>'+
-        '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
+        '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+(s.second2Photographer?' / '+esc(s.second2Photographer):'')+'</div>'+
         '<div class="up-card-sub">人员到场 '+(s.arrivalTime||'未填')+' · 金额 ¥'+(s.totalAmount||0)+(s.note?' · '+esc(s.note):'')+'</div></div>'+
         '<button class="btn btn-sm btn-ghost">补排期</button>'+
         (isMasterLike()?'<button class="btn btn-sm btn-danger-ghost" data-del-id="'+esc(s.id)+'">删除</button>':'')+
@@ -4102,7 +4106,7 @@ function filterSchedules(){
   return DB.getSchedules().filter(function(s){
     if(ph && s.photographer!==ph) return false;
     if(kw){
-      const hay=[s.clientName,s.hotel,s.hall,s.planner,s.photographer,s.secondPhotographer,s.note].join(' ').toLowerCase();
+      const hay=[s.clientName,s.hotel,s.hall,s.planner,s.photographer,s.secondPhotographer,s.second2Photographer,s.note].join(' ').toLowerCase();
       if(hay.indexOf(kw)<0) return false;
     }
     return true;
@@ -4126,13 +4130,14 @@ function schedCardHTML(s, upcoming){
   const dateHtml=upcoming[s.shootDate]&&!s.delivered?'<span class="upcoming">'+(s.shootDate?esc(s.shootDate).slice(5):'')+'</span>':(s.shootDate?esc(s.shootDate).slice(5):'未定');
   let html='<div class="sched-card'+(s.delivered?' delivered':'')+'" data-id="'+esc(s.id)+'">';
   html+='<div class="sched-head"><div class="sched-client">'+esc(s.clientName)+'</div><div class="sched-date">'+dateHtml+'</div></div>';
-  if(s.hotel||s.hall||s.planner||s.photographer||s.secondPhotographer||s.orderDate||s.arrivalTime||s.groomArrival){
+  if(s.hotel||s.hall||s.planner||s.photographer||s.secondPhotographer||s.second2Photographer||s.orderDate||s.arrivalTime||s.groomArrival){
     html+='<div class="sched-meta">';
     if(s.hotel) html+='<span class="m">'+esc(s.hotel)+'</span>';
     if(s.hall) html+='<span class="m">'+esc(s.hall)+'</span>';
     if(s.planner) html+='<span class="m">策划：'+esc(s.planner)+'</span>';
     if(s.photographer) html+='<span class="m">📷 '+esc(s.photographer)+'</span>';
     if(s.secondPhotographer) html+='<span class="m">副机：'+esc(s.secondPhotographer)+'</span>';
+    if(s.second2Photographer) html+='<span class="m">副2机：'+esc(s.second2Photographer)+'</span>';
     if(s.arrivalTime) html+='<span class="m">人员到场 '+esc(s.arrivalTime)+'</span>';
     if(s.groomArrival) html+='<span class="m">新郎抵达 '+esc(s.groomArrival)+'</span>';
     html+='</div>';
@@ -4221,7 +4226,7 @@ function toggleSubDetail(card, id){
   const rows=[
     ['客户', s.clientName||''],
     ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
-    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')],
+    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')+(s.second2Photographer?' / '+s.second2Photographer:'')],
     ['拍摄日期', s.shootDate||'未排期'],
     ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
     ['下单日期', s.orderDate||'—'],
@@ -4250,7 +4255,7 @@ function subCapture(id){
   g.font='16px sans-serif'; g.fillStyle='#999'; g.fillText('生成于 '+new Date().toLocaleString('zh-CN'), 40, 122);
   const rows=[
     ['客户', s.clientName||''], ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
-    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')],
+    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')+(s.second2Photographer?' / '+s.second2Photographer:'')],
     ['拍摄日期', s.shootDate||'未排期'],
     ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
     ['下单日期', s.orderDate||'—'],
@@ -4308,6 +4313,7 @@ function openScheduleModal(id){
   $('fPlanner').value=s?s.planner||'':'';
   $('fPhotographer').value=s?s.photographer||'':'';
   $('fSecond').value=s?s.secondPhotographer||'':'';
+  $('fSecond2').value=s?s.second2Photographer||'':'';
   $('fOrderDate').value=s?s.orderDate||'':'';
   $('fShootDate').value=(s?s.shootDate:'')||selectedDate||'';
   $('fArrival').value=s?s.arrivalTime||'':'';
@@ -4323,7 +4329,7 @@ function openScheduleModal(id){
   $('fGroom').checked=!!(s&&s.shootGroom);
   updateBalance();
   populateHotelChain();
-  populatePersonSelects(s?s.photographer||'':'', s?s.secondPhotographer||'':'');
+  populatePersonSelects(s?s.photographer||'':'', s?s.secondPhotographer||'':'', s?s.second2Photographer||'':'');
   modalOpen=true;
   show('scheduleModal');
 }
@@ -4335,6 +4341,7 @@ function dayOccupiedNames(dateStr, excludeId){
     if(x.shootDate!==dateStr) return;
     if(x.photographer) names[x.photographer]=true;
     if(x.secondPhotographer) names[x.secondPhotographer]=true;
+    if(x.second2Photographer) names[x.second2Photographer]=true;
   });
   return names;
 }
@@ -4409,6 +4416,7 @@ function renderPhotoPop(filter){
       pop.hidden=true;
       populateMainSelect();
       populateSecondSelect();
+      populateSecond2Select();
     };
   });
 }
@@ -4442,14 +4450,53 @@ function renderSecondPop(filter){
       pop.hidden=true;
       populateSecondSelect();
       populateMainSelect();
+      populateSecond2Select();
     };
   });
 }
-function populatePersonSelects(initMain, initSecond){
+function populateSecond2Select(){
+  setDatalistOptions($('fSecond2'), 'dlSecond2', personNameList($('fSecond2').value));
+}
+/* 副2机位自定义下拉面板（排除主人员/副机位 + 当天互斥占用） */
+function renderSecond2Pop(filter){
+  const pop=$('second2Pop'), input=$('fSecond2');
+  if(!pop||!input) return;
+  const mid=getCurrentMasterId();
+  const people=DB.getPhoto(mid||'_default').slice();
+  const curVal=input.value.trim();
+  const mainVal=$('fPhotographer').value.trim();
+  const secondVal=$('fSecond').value.trim();
+  const dateStr=$('fShootDate').value;
+  const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const kw=(filter||'').toLowerCase();
+  let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
+  if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
+  if(!list.length){ pop.innerHTML='<div class="pp-item off">无匹配人员，可直接输入新名称</div>'; pop.hidden=false; return; }
+  pop.innerHTML=list.map(function(p){
+    const busy=(!!occ[p] || (mainVal&&p===mainVal) || (secondVal&&p===secondVal)) && p!==curVal;
+    const why=(mainVal&&p===mainVal)?'已选为主人员':((secondVal&&p===secondVal)?'已选为副机位':'当天已占用');
+    return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp3="'+esc(p)+'"'+(busy?' data-pp3-off="1"':'')+'>'+
+      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+why+'</span>':'')+'</div>';
+  }).join('');
+  pop.hidden=false;
+  pop.querySelectorAll('[data-pp3]').forEach(function(el){
+    el.onclick=function(){
+      if(el.dataset.pp3Off){ toast('「'+el.dataset.pp3+'」'+(el.dataset.pp3===mainVal?'已选为主人员':(el.dataset.pp3===secondVal?'已选为副机位':'当天已有档期')),'error'); return; }
+      input.value=el.dataset.pp3;
+      pop.hidden=true;
+      populateSecond2Select();
+      populateMainSelect();
+      populateSecondSelect();
+    };
+  });
+}
+function populatePersonSelects(initMain, initSecond, initSecond2){
   if(initMain!==undefined) $('fPhotographer').value=initMain;
   if(initSecond!==undefined) $('fSecond').value=initSecond;
+  if(initSecond2!==undefined) $('fSecond2').value=initSecond2;
   populateMainSelect();
   populateSecondSelect();
+  populateSecond2Select();
 }
 /* —— 酒店/厅/策划师 层级（目录树数据） —— */
 function hotelHalls(h){
@@ -4500,10 +4547,11 @@ function autoCategorizeInputs(mid){
   const plannerVal=$('fPlanner').value.trim();
   const mainVal=$('fPhotographer').value.trim();
   const secondVal=$('fSecond').value.trim();
+  const second2Val=$('fSecond2').value.trim();
   // 1) 人员库（统一人员表）
   const people=DB.getPhoto(mid||'_default').slice();
   let pChanged=false;
-  [mainVal, secondVal].forEach(function(nm){
+  [mainVal, secondVal, second2Val].forEach(function(nm){
     if(nm && people.indexOf(nm)<0){ people.push(nm); pChanged=true; }
   });
   if(pChanged){ DB.setPhoto(mid, people); markDirty('photographers'); }
@@ -4530,16 +4578,20 @@ function saveSchedule(){
   const shoot=$('fShootDate').value;
   if(!client){ toast('请填写客户姓名','error'); return; }
   // 拍摄日期可留空（未排期订单），其余字段均可免填
-  const main=$('fPhotographer').value.trim(), second=$('fSecond').value.trim();
+  const main=$('fPhotographer').value.trim(), second=$('fSecond').value.trim(), second2=$('fSecond2').value.trim();
   if(main && main===second){ toast('主人员和副机位不能是同一人','error'); return; }
+  if(main && main===second2){ toast('主人员和副2机位不能是同一人','error'); return; }
+  if(second && second===second2){ toast('副机位和副2机位不能是同一人','error'); return; }
   if(shoot){
     const occ=dayOccupiedNames(shoot, editingScheduleId);
     /* 仅当人员被修改时才做同日互斥检查：仅改备注/其他字段时不拦截 */
     const origS=editingScheduleId?DB.getSchedules().find(function(x){return x.id===editingScheduleId;}):null;
     const origMain=origS?(origS.photographer||''):'';
     const origSecond=origS?(origS.secondPhotographer||''):'';
+    const origSecond2=origS?(origS.second2Photographer||''):'';
     if(main && main!==origMain && occ[main]){ toast('「'+main+'」当天已有档期','error'); return; }
     if(second && second!==origSecond && occ[second]){ toast('「'+second+'」当天已有档期','error'); return; }
+    if(second2 && second2!==origSecond2 && occ[second2]){ toast('「'+second2+'」当天已有档期','error'); return; }
   }
   const mid=getCurrentMasterId();
   autoCategorizeInputs(mid);   // 新输入的人员/酒店/厅/策划师自动归类入库，方便以后复用
@@ -4551,7 +4603,7 @@ function saveSchedule(){
     Object.assign(s, {
       clientName:client, hotel:$('fHotel').value.trim(), hall:$('fHall').value.trim(),
       planner:$('fPlanner').value.trim(), photographer:$('fPhotographer').value.trim(),
-      secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
+      secondPhotographer:$('fSecond').value.trim(), second2Photographer:$('fSecond2').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
       shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
       shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value, groomArrival:$('fGroomArrival').value,
@@ -4564,7 +4616,7 @@ function saveSchedule(){
     const s={
       id:uid('s'), clientName:client, hotel:$('fHotel').value.trim(), hall:$('fHall').value.trim(),
       planner:$('fPlanner').value.trim(), photographer:$('fPhotographer').value.trim(),
-      secondPhotographer:$('fSecond').value.trim(), personConfirmed:$('fConfirmed').checked,
+      secondPhotographer:$('fSecond').value.trim(), second2Photographer:$('fSecond2').value.trim(), personConfirmed:$('fConfirmed').checked,
       noMorningGown:$('fNoGown').checked, pickup:$('fPickup').checked, dualCamera:$('fDual').checked,
       shootBride:$('fBride').checked, shootGroom:$('fGroom').checked,
       shootDate:shoot, orderDate:$('fOrderDate').value, arrivalTime:$('fArrival').value, groomArrival:$('fGroomArrival').value,
@@ -4729,7 +4781,7 @@ function openUpcomingModal(){
         (s.groomArrival?'<span class="up-time">新郎 '+esc(s.groomArrival)+'</span>':'')+
         (s.delivered?'<span class="chip" style="background:var(--primary-soft);color:var(--primary)">已交付</span>':'')+
         '</div>'+
-        '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+'</div>'+
+        '<div class="up-card-sub">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+' · 人员：'+(s.photographer?esc(s.photographer):'未排')+(s.secondPhotographer?' / '+esc(s.secondPhotographer):'')+(s.second2Photographer?' / '+esc(s.second2Photographer):'')+'</div>'+
         '<div class="up-card-sub">总额 ¥'+(s.totalAmount||0)+' · 定金 ¥'+(s.deposit||0)+'</div>'+
         '</div>';
     });
@@ -6926,13 +6978,16 @@ function bindEvents(){
   $('fGroom').addEventListener('change', function(){ if($('fGroom').checked) $('fBride').checked=false; });
   $('fTotal').addEventListener('input', updateBalance);
   $('fDeposit').addEventListener('input', updateBalance);
-  $('fShootDate').addEventListener('change', function(){ populateMainSelect(); populateSecondSelect(); });
-  $('fPhotographer').addEventListener('input', function(){ renderPhotoPop($('fPhotographer').value); populateSecondSelect(); });
+  $('fShootDate').addEventListener('change', function(){ populateMainSelect(); populateSecondSelect(); populateSecond2Select(); });
+  $('fPhotographer').addEventListener('input', function(){ renderPhotoPop($('fPhotographer').value); populateSecondSelect(); populateSecond2Select(); });
   $('fPhotographer').addEventListener('focus', function(){ renderPhotoPop(''); });
   $('fPhotographer').addEventListener('blur', function(){ setTimeout(function(){ const p=$('photoPop'); if(p) p.hidden=true; }, 180); });
   $('fSecond').addEventListener('input', function(){ renderSecondPop($('fSecond').value); populateMainSelect(); });
   $('fSecond').addEventListener('focus', function(){ renderSecondPop(''); });
   $('fSecond').addEventListener('blur', function(){ setTimeout(function(){ const p=$('secondPop'); if(p) p.hidden=true; }, 180); });
+  $('fSecond2').addEventListener('input', function(){ renderSecond2Pop($('fSecond2').value); populateMainSelect(); populateSecondSelect(); });
+  $('fSecond2').addEventListener('focus', function(){ renderSecond2Pop(''); });
+  $('fSecond2').addEventListener('blur', function(){ setTimeout(function(){ const p=$('second2Pop'); if(p) p.hidden=true; }, 180); });
   $('fHotel').addEventListener('input', function(){ populateHotelChain(); });
   $('fHotel').addEventListener('change', function(){ if($('fHall').value||$('fPlanner').value){ $('fHall').value=''; $('fPlanner').value=''; } populateHotelChain(); });
   $('fHall').addEventListener('input', function(){ populateHotelChain(); });
