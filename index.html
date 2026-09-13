@@ -3410,8 +3410,14 @@ async function pullAllToLocal(force, onProgress){
 
     if(myMid && !skip('schedules')){
       const schedD=await getAllDocs('schedules');
+      // 收集云端删除墓碑：已删除的订单 id 不再复活
+      const tombIds={};
+      schedD.forEach(function(x){ if(x&&x.id&&x._deleted) tombIds[x.id]=true; });
+      if(Object.keys(tombIds).length>0){
+        DB.setSchedules(DB.getSchedules().filter(function(x){ return x&&!tombIds[x.id]; }));
+      }
       // 兼容无 ownerId 的旧档期：可见并归属当前主账号（单主账号场景认领）
-      const mine=schedD.filter(function(x){return x&&x.id&&(x.ownerId===myMid||!x.ownerId);});
+      const mine=schedD.filter(function(x){return x&&x.id&&!tombIds[x.id]&&(x.ownerId===myMid||!x.ownerId);});
       if(mine.length>0){
         const merged=mergeById(DB.getSchedules(), mine);
         DB.setSchedules(merged);
@@ -4570,16 +4576,23 @@ async function deleteSchedule(id){
   if(!isMasterLike()) return;
   const s=DB.getSchedules().find(function(x){return x.id===id;});
   if(!s) return;
-  const ok=await confirmBox('删除档期','确定删除「'+s.clientName+'」的档期吗？此操作会同步到云端。');
+  const ok=await confirmBox('删除档期','确定删除「'+s.clientName+'」的档期吗？此操作会同步删除云端原始数据。');
   if(!ok) return;
   const list=DB.getSchedules().filter(function(x){return x.id!==id;});
   DB.setSchedules(list);
   addLog('删除档期', s.clientName);
   markDirty('schedules');
-  cloudRemoveByField('schedules','id',id);
+  /* 云端删除：① 物理删除原文档 ② 墓碑兜底（防权限删不掉时重新登录复活） */
+  if(cloudOK && cloudDB){
+    try{ await cloudRemoveByField('schedules','id',id); }catch(e){ console.warn('[cloud] 物理删除失败', e); }
+    try{
+      const mid2=getCurrentMasterId();
+      cloudDB.collection('schedules').add(Object.assign({id:id, _deleted:true, _syncAt:new Date().toISOString()}, cloudMeta(), mid2?{ownerId:mid2}:{})).catch(function(e){ console.warn('[cloud] 删除墓碑失败', e); });
+    }catch(e){ console.warn('[cloud] 删除墓碑异常', e); }
+  }
   flushPush();
   renderAll();
-  toast('已删除','ok');
+  toast('已删除（含云端数据）','ok');
   return true;
 }
 async function toggleDelivered(id){
