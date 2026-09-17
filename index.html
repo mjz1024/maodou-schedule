@@ -209,6 +209,20 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 
 /* 日历 */
 .calendar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+/* 人员年度订单搜索 */
+.py-search{display:flex;align-items:center;gap:8px;margin:8px 0 10px}
+.py-search input{flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text1);outline:none}
+.py-search input:focus{border-color:var(--primary)}
+.py-year-list{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 12px}
+.py-year-title{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.py-year-title .sub{font-size:12px;color:var(--text3);font-weight:400}
+.py-year-item{display:flex;flex-direction:column;gap:3px;padding:10px 4px;border-bottom:1px dashed var(--border);cursor:pointer}
+.py-year-item:last-child{border-bottom:none}
+.py-year-item:active{background:var(--input-bg)}
+.py-year-item .r1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.py-year-item .date{font-size:13px;font-weight:800;color:var(--primary)}
+.py-year-item .client{font-size:14px;font-weight:700}
+.py-year-item .r2{font-size:12px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap}
 /* 当日人员占用 */
 .occ-panel{margin-top:10px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 12px}
 .occ-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
@@ -2874,6 +2888,11 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
         <button class="active" id="viewCalBtn">日历视图</button>
       </div>
       <button class="btn btn-sm btn-ghost upcoming-btn" id="upcomingBtn">📅 后两日订单提醒</button>
+      <div class="py-search" id="personYearSearch">
+        <input id="pySearchInput" list="pySearchList" placeholder="🔍 按人员搜索本年度订单" autocomplete="off">
+        <datalist id="pySearchList"></datalist>
+        <button class="btn btn-sm btn-ghost" id="pySearchClear" style="display:none">✕ 清除</button>
+      </div>
       <div id="calendarView"></div>
       <div class="sched-filters" id="filterBar" style="display:none">
       </div>
@@ -3994,6 +4013,7 @@ function renderCalendar(){
   renderTicker();
   const cont=$('calendarView');
   const y=calYear, m=calMonth;
+  populatePySearchList();
   const first=new Date(y,m,1);
   const startDow=(first.getDay()+6)%7;   // 周一为 0
   const daysInMonth=new Date(y,m+1,0).getDate();
@@ -4060,6 +4080,74 @@ function renderCalendar(){
   cont.querySelectorAll('.cal-day[data-date]').forEach(function(el){
     el.onclick=function(){ selectedDate=el.dataset.date; renderCalendar(); renderScheduleList(); };
   });
+}
+
+/* ============ 人员年度订单搜索：选择人员 → 列出本年度全部订单 ============ */
+let pyActivePerson=null;
+function populatePySearchList(){
+  const year=new Date().getFullYear();
+  const mid=getCurrentMasterId()||'_default';
+  const set={};
+  DB.getPhoto(mid).forEach(function(nm){ if(nm) set[nm]=true; });
+  DB.getSchedules().forEach(function(s){
+    if(!s.shootDate || s.shootDate.indexOf(year+'-')!==0) return;
+    [s.photographer,s.secondPhotographer,s.second2Photographer].forEach(function(nm){
+      if(nm && String(nm).indexOf('喜玛拾光')<0) set[nm]=true;
+    });
+  });
+  const el=$('pySearchList');
+  if(el) el.innerHTML=Object.keys(set).sort().map(function(nm){ return '<option value="'+esc(nm)+'"></option>'; }).join('');
+}
+function renderPersonYearList(person){
+  if(!person) return;
+  const year=new Date().getFullYear();
+  const scheds=DB.getSchedules().filter(function(s){
+    return s.shootDate && s.shootDate.indexOf(year+'-')===0 &&
+      (s.photographer===person || s.secondPhotographer===person || s.second2Photographer===person);
+  }).sort(function(a,b){ return a.shootDate<b.shootDate?-1:1; });
+  pyActivePerson=person;
+  hide('calendarView');
+  const clearBtn=$('pySearchClear');
+  if(clearBtn) clearBtn.style.display='inline-flex';
+  const cont=$('scheduleListView');
+  let html='<div class="py-year-list"><div class="py-year-title"><span>'+esc(person)+' 的 '+year+' 年订单</span><span class="sub">共 '+scheds.length+' 单</span></div>';
+  if(!scheds.length){
+    html+='<div class="empty-hint" style="padding:14px">该人员本年度暂无订单</div></div>';
+    cont.innerHTML=html;
+    return;
+  }
+  scheds.forEach(function(s){
+    const roles=[];
+    if(s.photographer===person) roles.push('主摄');
+    if(s.secondPhotographer===person) roles.push('副机');
+    if(s.second2Photographer===person) roles.push('副2');
+    const others=[];
+    if(s.photographer && s.photographer!==person) others.push(s.photographer);
+    if(s.secondPhotographer && s.secondPhotographer!==person) others.push(s.secondPhotographer);
+    if(s.second2Photographer && s.second2Photographer!==person) others.push(s.second2Photographer);
+    const d=s.shootDate.split('-');
+    const ds=(d[1]||'')+'月'+(d[2]||'')+'日';
+    html+='<div class="py-year-item" data-pyd="'+esc(s.id)+'">'+
+      '<div class="r1"><span class="date">'+ds+'</span><span class="client">'+esc(s.clientName)+'</span><span style="font-size:11px;color:var(--primary)">'+roles.join('/')+'</span></div>'+
+      '<div class="r2">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+(others.length?' · 搭档:'+esc(others.join('、')):'')+' · ¥'+(s.totalAmount||0)+'</div>'+
+      (s.note?'<div class="r2">'+esc(s.note)+'</div>':'')+
+      '</div>';
+  });
+  html+='</div>';
+  cont.innerHTML=html;
+  cont.querySelectorAll('[data-pyd]').forEach(function(el){
+    el.onclick=function(){ openScheduleModal(el.dataset.pyd); };
+  });
+}
+function resetPersonYearSearch(){
+  pyActivePerson=null;
+  const inp=$('pySearchInput');
+  if(inp) inp.value='';
+  const clearBtn=$('pySearchClear');
+  if(clearBtn) clearBtn.style.display='none';
+  show('calendarView');
+  const cont=$('scheduleListView');
+  if(cont) cont.innerHTML='';
 }
 /* 未排期订单弹窗（无拍摄日期的订单） */
 function showUnschedModal(){
@@ -6758,7 +6846,10 @@ function switchTab(tab){
   ['schedule','plaza','manage','me'].forEach(function(t){
     $('tab-'+t).classList.toggle('hidden', t!==tab);
   });
-  if(tab==='schedule'){ renderCalendar(); renderScheduleList(); }
+  if(tab==='schedule'){
+    if(pyActivePerson){ renderPersonYearList(pyActivePerson); }
+    else { renderCalendar(); renderScheduleList(); }
+  }
   if(tab==='plaza'){ renderPlaza(); }
   if(tab==='manage'){ renderManage(); }
   if(tab==='me'){ renderMe(); }
@@ -6995,6 +7086,17 @@ function bindEvents(){
   $('fabAddBtn').onclick=function(){ if(isMasterLike()) openScheduleModal(null); else toast('子账号仅可查看档期','error'); };
   $('upcomingBtn').onclick=openUpcomingModal;
   $('scheduleSaveBtn').onclick=saveSchedule;
+
+  // 人员年度订单搜索
+  $('pySearchInput').addEventListener('input', function(){ populatePySearchList(); });
+  $('pySearchInput').addEventListener('change', function(){
+    const v=$('pySearchInput').value.trim();
+    if(v){ $('pySearchInput').value=v; renderPersonYearList(v); }
+  });
+  $('pySearchInput').addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); const v=$('pySearchInput').value.trim(); if(v){ $('pySearchInput').value=v; renderPersonYearList(v); } }
+  });
+  $('pySearchClear').onclick=resetPersonYearSearch;
 
   // 弹窗关闭
   document.querySelectorAll('[data-close]').forEach(function(b){
