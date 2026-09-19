@@ -2889,7 +2889,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
       </div>
       <button class="btn btn-sm btn-ghost upcoming-btn" id="upcomingBtn">📅 后两日订单提醒</button>
       <div class="py-search" id="personYearSearch">
-        <input id="pySearchInput" list="pySearchList" placeholder="🔍 输入人员姓名" autocomplete="off">
+        <input id="pySearchInput" list="pySearchList" placeholder="🔍 搜人员/客户/酒店/厅名/策划师" autocomplete="off">
         <datalist id="pySearchList"></datalist>
         <button class="btn btn-sm btn-primary" id="pySearchBtn">搜索</button>
       </div>
@@ -4082,7 +4082,7 @@ function renderCalendar(){
   });
 }
 
-/* ============ 人员年度订单搜索：手动搜索 → 弹窗展示本年度全部订单 ============ */
+/* ============ 订单搜索：手动搜索 → 弹窗展示本年度匹配订单（全字段） ============ */
 function populatePySearchList(){
   const year=new Date().getFullYear();
   const mid=getCurrentMasterId()||'_default';
@@ -4097,35 +4097,34 @@ function populatePySearchList(){
   const el=$('pySearchList');
   if(el) el.innerHTML=Object.keys(set).sort().map(function(nm){ return '<option value="'+esc(nm)+'"></option>'; }).join('');
 }
-function showPersonYearModal(person){
-  if(!person){ toast('请输入人员姓名','error'); return; }
+function showOrderSearchModal(kw){
+  if(!kw){ toast('请输入搜索关键词','error'); return; }
   const year=new Date().getFullYear();
+  const k=kw.toLowerCase();
   const scheds=DB.getSchedules().filter(function(s){
-    return s.shootDate && s.shootDate.indexOf(year+'-')===0 &&
-      (s.photographer===person || s.secondPhotographer===person || s.second2Photographer===person);
+    if(!s.shootDate || s.shootDate.indexOf(year+'-')!==0) return false;
+    const hay=[s.clientName,s.hotel,s.hall,s.planner,s.photographer,s.secondPhotographer,s.second2Photographer,s.note].join(' ').toLowerCase();
+    return hay.indexOf(k)>=0;
   }).sort(function(a,b){ return a.shootDate<b.shootDate?-1:1; });
   const overlay=document.createElement('div');
   overlay.className='modal-mask';
   overlay.style.display='flex';
-  let html='<div class="modal"><div class="modal-head"><h3>'+esc(person)+' 的 '+year+' 年订单（'+scheds.length+'）</h3><button class="modal-close">✕</button></div><div class="modal-body">';
+  let html='<div class="modal"><div class="modal-head"><h3>「'+esc(kw)+'」的搜索结果（'+scheds.length+'）</h3><button class="modal-close">✕</button></div><div class="modal-body">';
   if(!scheds.length){
-    html+='<div class="empty-hint" style="padding:16px">该人员本年度暂无订单</div>';
+    html+='<div class="empty-hint" style="padding:16px">本年度未找到包含「'+esc(kw)+'」的订单</div>';
   }else{
     html+='<div class="py-year-list" style="box-shadow:none;padding:0">';
     scheds.forEach(function(s){
-      const roles=[];
-      if(s.photographer===person) roles.push('主摄');
-      if(s.secondPhotographer===person) roles.push('副机');
-      if(s.second2Photographer===person) roles.push('副2');
-      const others=[];
-      if(s.photographer && s.photographer!==person) others.push(s.photographer);
-      if(s.secondPhotographer && s.secondPhotographer!==person) others.push(s.secondPhotographer);
-      if(s.second2Photographer && s.second2Photographer!==person) others.push(s.second2Photographer);
       const d=s.shootDate.split('-');
       const ds=(d[1]||'')+'月'+(d[2]||'')+'日';
+      const people=[];
+      if(s.photographer) people.push('主摄:'+s.photographer);
+      if(s.secondPhotographer) people.push('副机:'+s.secondPhotographer);
+      if(s.second2Photographer) people.push('副2:'+s.second2Photographer);
       html+='<div class="py-year-item" data-pyd="'+esc(s.id)+'">'+
-        '<div class="r1"><span class="date">'+ds+'</span><span class="client">'+esc(s.clientName)+'</span><span style="font-size:11px;color:var(--primary)">'+roles.join('/')+'</span></div>'+
-        '<div class="r2">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+(others.length?' · 搭档:'+esc(others.join('、')):'')+' · ¥'+(s.totalAmount||0)+'</div>'+
+        '<div class="r1"><span class="date">'+ds+'</span><span class="client">'+esc(s.clientName)+'</span><span style="font-size:11px;color:var(--primary)">¥'+(s.totalAmount||0)+'</span></div>'+
+        '<div class="r2">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+(s.planner?' · 策划师:'+esc(s.planner):'')+'</div>'+
+        (people.length?'<div class="r2">'+esc(people.join(' / '))+'</div>':'')+
         (s.note?'<div class="r2">'+esc(s.note)+'</div>':'')+
         '</div>';
     });
@@ -4143,9 +4142,9 @@ function showPersonYearModal(person){
 function searchPersonYear(){
   const inp=$('pySearchInput');
   const v=inp?inp.value.trim():'';
-  if(!v){ toast('请输入人员姓名','error'); return; }
+  if(!v){ toast('请输入关键词','error'); return; }
   inp.value=v;
-  showPersonYearModal(v);
+  showOrderSearchModal(v);
 }
 /* 未排期订单弹窗（无拍摄日期的订单） */
 function showUnschedModal(){
