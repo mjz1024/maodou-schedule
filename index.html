@@ -51,9 +51,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary)}
 .theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px var(--border);transition:transform .15s}
 .theme-dot:hover{transform:scale(1.18)}
 .theme-dot.active{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--primary);transform:scale(1.12)}
-/* 档期表单下拉菜单：文字与底色反向，加粗突出 */
-#scheduleModal select{background:var(--text);color:var(--card);font-weight:700;border-color:var(--primary);letter-spacing:.3px}
-#scheduleModal select option{color:var(--text);background:var(--card);font-weight:400}
+/* 档期表单下拉项（酒店/厅名/策划师/人员）：文字与底色反向，加粗突出 */
+#scheduleModal input[list],
+#scheduleModal .person-pick input{background:var(--text);color:var(--card);font-weight:700;border-color:var(--primary);letter-spacing:.3px}
+#scheduleModal input[list]::placeholder,
+#scheduleModal .person-pick input::placeholder{color:var(--card);opacity:.55}
 textarea{resize:vertical;min-height:80px}
 #fNote{resize:none;height:80px;overflow-y:auto}
 .hidden{display:none!important}
