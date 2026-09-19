@@ -3426,20 +3426,28 @@ async function pullAllToLocal(force, onProgress){
     return Object.keys(by).map(function(k){ return by[k]; });
   }
   try{
-    if(!skip('users')){
-      const usersD=await getAllDocs('users');
+    // 并行拉取：10个集合同时发起，墙钟≈最慢集合，而非串行之和
+    const doGet=function(name){
+      if(skip(name)) return Promise.resolve(null);
+      return getAllDocs(name).then(function(d){ _stepP(name); return d; });
+    };
+    const [usersD,schedD,settingsD,dayD,sessionsD,photoD,hotelD,opLogD,topicD,commentD]=await Promise.all([
+      doGet('users'), doGet('schedules'), doGet('settings'), doGet('day_settings'),
+      doGet('sessions'), doGet('photographers'), doGet('hotels'), doGet('operation_log'),
+      doGet('plaza_topics'), doGet('plaza_comments')
+    ]);
+
+    if(usersD){
       /* 先收集云端删除标记，过滤该 id 所有文档（含跨身份删不掉的残留），防止删除的账号复活 */
       const deletedIds={};
       usersD.forEach(function(x){ if(x&&x.id&&x._deleted) deletedIds[x.id]=true; });
       const valid=usersD.filter(function(x){return x&&x.id&&x.username&&!deletedIds[x.id];});
       if(valid.length>0) DB.setUsers(mergeById(DB.getUsers(), valid).filter(function(x){ return x&&!x._deleted; }));
     }
-    _stepP('账号');
     const cloudUserIds={};
     DB.getUsers().forEach(function(u){ if(u&&u.id) cloudUserIds[u.id]=true; });
 
-    if(myMid && !skip('schedules')){
-      const schedD=await getAllDocs('schedules');
+    if(myMid && schedD){
       // 收集云端删除墓碑：已删除的订单 id 不再复活
       const tombIds={};
       schedD.forEach(function(x){ if(x&&x.id&&x._deleted) tombIds[x.id]=true; });
@@ -3460,9 +3468,7 @@ async function pullAllToLocal(force, onProgress){
         }
       }
     }
-    _stepP('档期');
-    if(!skip('settings')){
-      const d=await getAllDocs('settings');
+    if(settingsD){
       const map={};
       const cur=DB.getSettings();
       d.forEach(function(x){
@@ -3475,9 +3481,7 @@ async function pullAllToLocal(force, onProgress){
       }
       DB.setSettings(cur);
     }
-    _stepP('设置');
-    if(myMid && !skip('day_settings')){
-      const d=await getAllDocs('day_settings');
+    if(myMid && dayD){
       const map={};
       d.forEach(function(x){ if(x&&x.date&&(x.masterId===myMid||x._masterId===myMid)) map[x.date]=x; });
       if(Object.keys(map).length>0){
@@ -3486,15 +3490,11 @@ async function pullAllToLocal(force, onProgress){
         DB.setDaySettings(cur);
       }
     }
-    _stepP('日程设置');
-    if(!skip('sessions')){
-      const d=await getAllDocs('sessions');
-      const mine=d.filter(function(x){ return x&&x.type!=='qr_login'&&x.type!=='online'&&(x.username===currentUser.username||x.userId===currentUser.id); });
+    if(sessionsD){
+      const mine=sessionsD.filter(function(x){ return x&&x.type!=='qr_login'&&x.type!=='online'&&(x.username===currentUser.username||x.userId===currentUser.id); });
       if(mine.length>0) DB.setSessions(mergeById(DB.getSessions(), mine));
     }
-    _stepP('会话');
-    if(!skip('photographers')){
-      const d=await getAllDocs('photographers');
+    if(photoD){
       const by={};
       d.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid && String(x.name).indexOf('喜玛拾光')<0) (by[m]=by[m]||[]).push(x.name); } });
       Object.keys(by).forEach(function(m){
@@ -3504,9 +3504,7 @@ async function pullAllToLocal(force, onProgress){
       });
       if(force && myMid && by[myMid]===undefined) DB.setPhoto(myMid, []);
     }
-    _stepP('人员');
-    if(!skip('hotels')){
-      const d=await getAllDocs('hotels');
+    if(hotelD){
       const by={};
       d.forEach(function(x){
         if(x&&x.name){
@@ -3528,30 +3526,23 @@ async function pullAllToLocal(force, onProgress){
       });
       if(force && myMid && by[myMid]===undefined) DB.setHotels(myMid, []);
     }
-    _stepP('酒店');
-    if(!skip('operation_log')){
-      const d=await getAllDocs('operation_log');
+    if(opLogD){
       const by={};
-      d.forEach(function(x){ if(x&&x.id){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid) (by[m]=by[m]||[]).push(x); } });
+      opLogD.forEach(function(x){ if(x&&x.id){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid) (by[m]=by[m]||[]).push(x); } });
       Object.keys(by).forEach(function(m){
         const cur=DB.getOpLog(m).slice();
         by[m].forEach(function(item){ if(!cur.some(function(y){ return y.id===item.id; })) cur.push(item); });
         DB.setOpLog(m, cur);
       });
     }
-    _stepP('操作日志');
-    if(!skip('plaza_topics')){
-      const d=await getAllDocs('plaza_topics');
-      const valid=d.filter(function(x){return x&&x.id&&x.title;});
+    if(topicD){
+      const valid=topicD.filter(function(x){return x&&x.id&&x.title;});
       if(valid.length>0) DB.setPlazaTopics(mergeById(DB.getPlazaTopics(), valid));
     }
-    _stepP('广场帖子');
-    if(!skip('plaza_comments')){
-      const d=await getAllDocs('plaza_comments');
-      const valid=d.filter(function(x){return x&&x.id&&x.topicId;});
+    if(commentD){
+      const valid=commentD.filter(function(x){return x&&x.id&&x.topicId;});
       if(valid.length>0) DB.setPlazaComments(mergeById(DB.getPlazaComments(), valid));
     }
-    _stepP('广场评论');
     return true;
   }catch(e){ console.warn('[cloud] pull 异常', e); return false; }
 }
