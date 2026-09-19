@@ -3152,8 +3152,8 @@ const APP_VERSION = 'v31.0';
 const APP_RELEASE = '1.1.0';   // 客户端安装包版本号（用于强制更新比对）
 const CLOUDBASE_ENV = 'mjz1024-d9gmd96afc2ffc3ad';
 const CLOUD_REGION = 'ap-shanghai';   // 环境实际创建区域（ap-shanghai）
-const THEME_ORDER = ['auto','champagne','pink','dark','blackgold'];
-const THEME_NAMES = {auto:'跟随系统', champagne:'香槟', pink:'粉色', dark:'深色', blackgold:'黑金'};
+const THEME_ORDER = ['blackgold','pink','champagne'];
+const THEME_NAMES = {champagne:'香槟', pink:'白粉', blackgold:'黑金'};
 const THEME_COLORS = {auto:'#8b93a3', champagne:'#b98a2f', pink:'#ec407a', dark:'#3b4252', blackgold:'#d4af37'};
 
 /* ============ 工具函数 ============ */
@@ -5396,13 +5396,7 @@ function renderMe(){
   html+='<div class="me-row"><span class="lbl">版本</span><span class="val small">'+APP_RELEASE+' · '+APP_VERSION+' · 小程序平台</span></div>';
   html+='</div></div>';
 
-  // 主题
-  html+='<div class="me-card'+(expandedMeCards.theme?'':' collapsed')+'" data-me-card="theme"><h3 class="me-card-head" data-toggle-me="theme"><span>主题外观</span><span class="arr">▶</span></h3><div class="me-card-body"><div class="theme-row">';
-  THEME_ORDER.forEach(function(t){
-    html+='<div class="theme-item'+(s.theme===t?' active':'')+'" data-theme-val="'+t+'">'+
-      '<span class="theme-swatch" style="background:'+THEME_COLORS[t]+'"></span>'+THEME_NAMES[t]+'</div>';
-  });
-  html+='</div></div></div>';
+  // 主题外观已移至档期页右上角圆点切换，此处不再展示
 
   // 提醒
   html+='<div class="me-card'+(expandedMeCards.reminder?'':' collapsed')+'" data-me-card="reminder"><h3 class="me-card-head" data-toggle-me="reminder"><span>拍摄提醒</span><span class="arr">▶</span></h3><div class="me-card-body">';
