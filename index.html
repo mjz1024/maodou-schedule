@@ -6625,7 +6625,7 @@ async function handleLogin(){
       user.loginMethod='password';
     }
     // 记住登录态：安卓/客户端保持在线，重开软件自动登录
-    try{ localStorage.setItem('xgd_remember', JSON.stringify({username:user.username, password:user.password})); }catch(e){}
+    try{ localStorage.setItem('xgd_remember', JSON.stringify({username:user.username, password:user.password, ts:Date.now()})); }catch(e){}
     await loginComplete(user, {quick:true});
   }catch(e){
     console.warn(e);
@@ -7145,6 +7145,12 @@ async function autoLoginIfRemembered(){
     if(!saved) return false;
     const s=JSON.parse(saved);
     if(!s || !s.username || !s.password) return false;
+    // 账号密码保留7天：过期后清除记住状态，需重新登录
+    const REMEMBER_MS=7*24*3600*1000;
+    if(s.ts && (Date.now()-s.ts)>REMEMBER_MS){
+      try{ localStorage.removeItem('xgd_remember'); }catch(e){}
+      return false;
+    }
     let user=null;
     // 云端快速校验（在线）
     if(cloudOK && navigator.onLine){
