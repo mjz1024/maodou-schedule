@@ -46,6 +46,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select,textarea{font-family:inherit;font-size:15px;color:var(--text);background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none;transition:border .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+/* 档期页右上角主题圆点切换 */
+.theme-dots{display:flex;align-items:center;gap:7px}
+.theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px var(--border);transition:transform .15s}
+.theme-dot:hover{transform:scale(1.18)}
+.theme-dot.active{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--primary);transform:scale(1.12)}
+/* 档期表单下拉菜单：文字与底色反向，加粗突出 */
+#scheduleModal select{background:var(--text);color:var(--card);font-weight:700;border-color:var(--primary);letter-spacing:.3px}
+#scheduleModal select option{color:var(--text);background:var(--card);font-weight:400}
 textarea{resize:vertical;min-height:80px}
 #fNote{resize:none;height:80px;overflow-y:auto}
 .hidden{display:none!important}
@@ -4018,7 +4026,14 @@ function renderCalendar(){
   let html='<div class="calendar">';
   html+='<div class="cal-top">';
   html+='<div class="cal-nav"><button id="calPrev">‹</button><span class="cal-month" id="calMonthLabel">'+y+'年'+(m+1)+'月</span><button id="calNext">›</button></div>';
+  html+='<div style="display:flex;align-items:center;gap:10px">';
   html+='<button class="btn btn-ghost btn-sm" id="calToday">今天</button>';
+  html+='<div class="theme-dots" id="calThemeDots">';
+  const _curT=(DB.getSettings().theme||'auto');
+  THEME_ORDER.forEach(function(t){
+    html+='<span class="theme-dot'+(_curT===t?' active':'')+'" data-cal-theme="'+t+'" style="background:'+THEME_COLORS[t]+'" title="'+THEME_NAMES[t]+'"></span>';
+  });
+  html+='</div></div>';
   html+='</div>';
   html+='<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
     '<button class="btn btn-ghost btn-sm" id="unschedBtn">📋 未排期订单（'+unschedCount+'）</button>'+
@@ -4067,6 +4082,15 @@ function renderCalendar(){
   $('calPrev').onclick=function(){ calMonth--; if(calMonth<0){ calMonth=11; calYear--; } renderCalendar(); };
   $('calNext').onclick=function(){ calMonth++; if(calMonth>11){ calMonth=0; calYear++; } renderCalendar(); };
   $('calToday').onclick=function(){ const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth(); selectedDate=todayStr(); renderCalendar(); renderScheduleList(); };
+  // 档期页右上角主题圆点：点击即切，保存设置并刷新
+  document.querySelectorAll('[data-cal-theme]').forEach(function(el){
+    el.onclick=function(){
+      const t=el.getAttribute('data-cal-theme');
+      const cur=DB.getSettings(); cur.theme=t; DB.setSettings(cur);
+      try{ localStorage.setItem('xgd_theme', t); }catch(e){}
+      loadTheme(); renderCalendar(); if(typeof renderMe==='function') renderMe();
+    };
+  });
   $('unschedBtn').onclick=showUnschedModal;
   cont.querySelectorAll('.cal-day[data-date]').forEach(function(el){
     el.onclick=function(){ selectedDate=el.dataset.date; renderCalendar(); renderScheduleList(); };
