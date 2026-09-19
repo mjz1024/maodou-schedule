@@ -4087,7 +4087,8 @@ function renderCalendar(){
     el.onclick=function(){
       const t=el.getAttribute('data-cal-theme');
       const cur=DB.getSettings(); cur.theme=t; DB.setSettings(cur);
-      try{ localStorage.setItem('xgd_theme', t); }catch(e){}
+      const _mid=getCurrentMasterId();
+      try{ if(_mid) localStorage.setItem('ps_theme_'+_mid, t); }catch(e){}
       loadTheme(); renderCalendar(); if(typeof renderMe==='function') renderMe();
     };
   });
