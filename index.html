@@ -3981,13 +3981,17 @@ function renderTicker(){
     return;
   }
   const lineH=30;
-  // 每条订单一行；复制一份实现无缝循环
-  let lines=scheds.map(function(s){
-    return '<div class="ticker-line">'+esc((s.shootDate||'').slice(5)+' '+s.clientName+(s.hotel?'·'+s.hotel:'')+(s.photographer?'【'+s.photographer+'】':''))+'</div>';
-  }).join('');
+  // 两两并排一行，中间逗号隔开；复制一份实现无缝循环
+  const fmtLine=function(s){ return (s.shootDate||'').slice(5)+' '+s.clientName+(s.hotel?'·'+s.hotel:'')+(s.photographer?'【'+s.photographer+'】':''); };
+  const pairArr=[];
+  for(let i=0;i<scheds.length;i+=2){
+    const a=scheds[i], b=scheds[i+1];
+    pairArr.push('<div class="ticker-line">'+esc(fmtLine(a))+(b?('，'+esc(fmtLine(b))):'')+'</div>');
+  }
+  const lines=pairArr.join('');
   wrap.innerHTML='<div class="order-ticker-track-v" id="orderTickerTrack">'+lines+lines+'</div>';
   const track=$('orderTickerTrack');
-  const N=scheds.length;
+  const N=pairArr.length;
   let idx=0;
   // 垂直轮播：每 3.6s 向上滚一条（较慢速度）
   tickerTimer=setInterval(function(){
