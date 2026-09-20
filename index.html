@@ -3550,7 +3550,7 @@ async function pullAllToLocal(force, onProgress){
         by[m].forEach(function(nm){ if(cur.indexOf(nm)<0) cur.push(nm); });
         DB.setPhoto(m, cur);
       });
-      if(force && myMid && by[myMid]===undefined) DB.setPhoto(myMid, []);
+      // 云端空不清本地（配额超限/首次同步时云端为空，不能把本地人员清掉）
     }
     if(hotelD){
       const by={};
@@ -3572,7 +3572,7 @@ async function pullAllToLocal(force, onProgress){
         });
         DB.setHotels(m, cur);
       });
-      if(force && myMid && by[myMid]===undefined) DB.setHotels(myMid, []);
+      // 云端空不清本地酒店数据
     }
     if(opLogD){
       const by={};
