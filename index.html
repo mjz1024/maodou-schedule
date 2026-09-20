@@ -3403,6 +3403,42 @@ async function getAllDocs(name){
   }catch(e){ console.warn('[cloud] 拉取失败', name, e); return []; }
 }
 
+/* 增量拉取：只取 _syncAt > since 的文档；无 since 或失败时回退全量 */
+async function getAllDocsInc(name, since){
+  if(!cloudOK||!cloudDB) return [];
+  if(!since) return getAllDocs(name);
+  try{
+    const col=cloudDB.collection(name);
+    const _=cloudDB.command;
+    let out=[];
+    let batch=await col.where({_syncAt: _.gt(since)}).limit(100).get();
+    out=out.concat(batch.data||[]);
+    while((batch.data||[]).length===100){
+      batch=await col.where({_syncAt: _.gt(since)}).skip(out.length).limit(100).get();
+      out=out.concat(batch.data||[]);
+    }
+    return out.map(function(x){
+      if(x && x.data && typeof x.data==='object' && !x.id && !x.username && !x.name && !x.clientName && !x.date && !x.title && !x.masterId && !x.code){
+        const merged=Object.assign({}, x.data);
+        if(x._id) merged._id=x._id;
+        delete merged._openid;
+        return merged;
+      }
+      const c=Object.assign({}, x);
+      delete c._openid;
+      return c;
+    });
+  }catch(e){
+    console.warn('[cloud] 增量拉取失败，回退全量', name, e);
+    return getAllDocs(name);
+  }
+}
+
+/* 各集合上次同步时间戳（按主账号隔离） */
+function _lastSyncKey(name){ const mid=getCurrentMasterId()||'_anon'; return 'xgd_lastSync_'+mid+'_'+name; }
+function _getLastSync(name){ try{ return localStorage.getItem(_lastSyncKey(name))||''; }catch(e){ return ''; } }
+function _setLastSync(name, ts){ try{ localStorage.setItem(_lastSyncKey(name), ts); }catch(e){} }
+
 /* 全量拉取：云端 → 本地（REPLACE 覆盖；dirty 集合跳过以避免覆盖未同步的本地修改） */
 async function pullAllToLocal(force, onProgress){
   if(!cloudOK) return false;
@@ -3436,10 +3472,12 @@ async function pullAllToLocal(force, onProgress){
     return Object.keys(by).map(function(k){ return by[k]; });
   }
   try{
-    // 并行拉取：10个集合同时发起，墙钟≈最慢集合，而非串行之和
+    // 并行+增量：10个集合同时发起；有上次同步时间则只拉变化的，首次全量
+    const nowIso=new Date().toISOString();
     const doGet=function(name){
       if(skip(name)) return Promise.resolve(null);
-      return getAllDocs(name).then(function(d){ _stepP(name); return d; });
+      const since=_getLastSync(name);
+      return getAllDocsInc(name, since).then(function(d){ _stepP(name); _setLastSync(name, nowIso); return d; });
     };
     const [usersD,schedD,settingsD,dayD,sessionsD,photoD,hotelD,opLogD,topicD,commentD]=await Promise.all([
       doGet('users'), doGet('schedules'), doGet('settings'), doGet('day_settings'),
