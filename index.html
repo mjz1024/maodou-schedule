@@ -6650,6 +6650,12 @@ async function handleLogin(){
         if(lu._deleted){ toast('该账号已被删除','error'); return; }
         if(lu.password!==password){ toast('用户名或密码错误','error'); return; }
         user=lu;
+        // 老账号本地登录成功：补字段并标记 users 脏，让 flushPush 推到云端
+        if(!user.createdAt) user.createdAt=new Date().toISOString();
+        user.visitCount=(user.visitCount||0)+1;
+        const i=users.findIndex(function(u){ return u.id===user.id; });
+        if(i>=0) users[i]=user; else users.push(user);
+        DB.setUsers(users); markDirty('users');
       }
     }
     // ②.5 云端快速校验失败时，拉取 users 集合再校验一次（防止老用户被误判为新账号）
