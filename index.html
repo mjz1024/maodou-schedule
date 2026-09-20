@@ -5636,7 +5636,11 @@ async function checkAppUpdate(){
     const v=await readLatestVersion();
     if(!v || !v.appVersion) return;
     if(cmpVer(v.appVersion, APP_RELEASE)<=0) return;
-    const force = v.force===true || (v.minVersion && cmpVer(v.minVersion, APP_RELEASE)>0);
+    // 强制规则：①超管勾选强制 ②超管设的最低版本高于当前 ③落后≥2个次版本自动强制
+    const segs=function(x){ const p=(x||'').toString().replace(/^v/i,'').split('.'); return [parseInt(p[0])||0, parseInt(p[1])||0]; };
+    const a=segs(v.appVersion), b=segs(APP_RELEASE);
+    const behind=(a[0]-b[0])*10+(a[1]-b[1]);
+    const force = v.force===true || (v.minVersion && cmpVer(v.minVersion, APP_RELEASE)>0) || behind>=2;
     showUpdateDialog(v, force);
   }catch(e){}
 }
