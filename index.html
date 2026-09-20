@@ -3519,7 +3519,7 @@ async function pullAllToLocal(force, onProgress){
     if(settingsD){
       const map={};
       const cur=DB.getSettings();
-      d.forEach(function(x){
+      settingsD.forEach(function(x){
         if(!x) return;
         if(x._id==='_login_sig'||x.key==='_login_sig'){ if(x.value!=null) cur._login_sig=x.value; return; }
         if(x.masterId||x._masterId) map[x.masterId||x._masterId]=x;
@@ -3531,7 +3531,7 @@ async function pullAllToLocal(force, onProgress){
     }
     if(myMid && dayD){
       const map={};
-      d.forEach(function(x){ if(x&&x.date&&(x.masterId===myMid||x._masterId===myMid)) map[x.date]=x; });
+      dayD.forEach(function(x){ if(x&&x.date&&(x.masterId===myMid||x._masterId===myMid)) map[x.date]=x; });
       if(Object.keys(map).length>0){
         const cur=DB.getDaySettings();
         Object.keys(map).forEach(function(date){ cur[date]=map[date]; });
@@ -3544,7 +3544,7 @@ async function pullAllToLocal(force, onProgress){
     }
     if(photoD){
       const by={};
-      d.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid && String(x.name).indexOf('喜玛拾光')<0) (by[m]=by[m]||[]).push(x.name); } });
+      photoD.forEach(function(x){ if(x&&x.name){ const m=x._masterId||x.masterId||'_default'; if(myMid&&m===myMid && String(x.name).indexOf('喜玛拾光')<0) (by[m]=by[m]||[]).push(x.name); } });
       Object.keys(by).forEach(function(m){
         const cur=DB.getPhoto(m).slice();
         by[m].forEach(function(nm){ if(cur.indexOf(nm)<0) cur.push(nm); });
@@ -3554,7 +3554,7 @@ async function pullAllToLocal(force, onProgress){
     }
     if(hotelD){
       const by={};
-      d.forEach(function(x){
+      hotelD.forEach(function(x){
         if(x&&x.name){
           const m=x._masterId||x.masterId||'_default';
           if(myMid&&m!==myMid) return;
