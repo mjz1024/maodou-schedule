@@ -5749,7 +5749,7 @@ function renderSuperPanel(){
       '<span class="arr">'+(open?'▼':'▶')+'</span> '+
       '<b>'+esc(m.username)+'</b> <span class="role-badge master">主账号</span> '+
       '<span class="small" style="color:var(--text3)">密码:</span> <code class="super-pwd">'+esc(m.password||'—')+'</code>'+
-      '<span class="small" style="color:var(--text3)"> · '+schedN+'单 · '+subs.length+'个子账号</span>'+
+      '<span class="small" style="color:var(--text3)"> · '+schedN+'单 · '+subs.length+'个子账号 · 注册:'+fmtTime(m.createdAt||'—')+'</span>'+
       (banned?' <span style="color:#d32f2f;font-weight:700">已封禁</span>':'')+
       '</div>';
     html+='<div class="super-ops">'+
@@ -5765,6 +5765,7 @@ function renderSuperPanel(){
           html+='<div class="super-sub-row">'+
             '🔹 <b>'+esc(s.username)+'</b> <span class="role-badge sub">子账号</span> '+
             '<span class="small" style="color:var(--text3)">密码:</span> <code class="super-pwd">'+esc(s.password||'—')+'</code>'+
+            '<span class="small" style="color:var(--text3)"> 注册:'+fmtTime(s.createdAt||'—')+'</span>'+
             '<span class="super-sub-ops">'+
             '<button class="btn btn-ghost btn-sm" data-super-sub-edit="'+esc(s.id)+'">修改</button>'+
             '<button class="btn btn-ghost btn-sm" data-super-sub-del="'+esc(s.id)+'">删除</button>'+
@@ -6670,6 +6671,18 @@ async function handleLogin(){
     }
     // ③ 新用户名 → 自动注册（需用户确认后进入）
     if(!user){
+      // 在线时最后再查一次云端，防止网络抖动把同名老用户误注册成新账号
+      if(cloudOK && navigator.onLine){
+        try{
+          const recheck=await cloudDB.collection('users').where({username:username}).limit(1).get();
+          const cd=(recheck&&recheck.data&&recheck.data[0]);
+          if(cd){
+            if(cd._deleted){ toast('该账号已被删除','error'); return; }
+            if(cd.password===password){ toast('账号密码正确，请重新登录','error'); return; }
+            toast('用户名或密码错误','error'); return;
+          }
+        }catch(e){ console.warn('[cloud] 注册前复核失败，按无同名继续', e); }
+      }
       if(!confirm('未找到账号「'+username+'」\n是否确认创建为新主账号并登录？')){
         toast('已取消注册','ok'); return;
       }
