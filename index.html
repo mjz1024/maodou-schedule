@@ -3009,6 +3009,7 @@ if(typeof window!=='undefined'){ window.qrcode=qrcode; }
   <div class="modal">
     <div class="modal-head">
       <h3 id="scheduleModalTitle">新增档期</h3>
+      <button class="modal-close" id="schedShareBtn" style="display:none;position:relative;width:auto;flex:none;padding:6px 12px;font-size:14px;background:var(--primary);color:#fff;border-radius:8px;margin-right:6px">📤 分享</button>
       <button class="modal-close" data-close="scheduleModal">✕</button>
     </div>
     <div class="modal-body">
@@ -4387,11 +4388,23 @@ function toggleSubDetail(card, id){
   card.appendChild(d);
   card.classList.add('expanded');
 }
-/* 长按订单卡片：生成订单图片并显示（可长按保存） */
+/* 长按订单卡片 / 分享按钮：生成全字段订单图片（可保存/下载） */
 function subCapture(id){
   const s=DB.getSchedules().find(function(x){ return x.id===id; });
   if(!s) return;
-  const W=750, H=880;
+  const W=750;
+  const rows=[
+    ['客户', s.clientName||''], ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
+    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')+(s.second2Photographer?' / '+s.second2Photographer:'')],
+    ['拍摄日期', s.shootDate||'未排期'],
+    ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
+    ['下单日期', s.orderDate||'—'],
+    ['拍摄对象', ((s.shootBride!==false?'拍新娘':'')+(s.shootGroom?' / 拍新郎':'')||'—')],
+    ['服务项目', ((s.pickup?'接送 ':'')+(s.dualCamera?'双机 ':'')+(s.noMorningGown?'无晨袍 ':'')+(s.personConfirmed?'已指定 ':'')||'—')],
+    ['金额', '总额 ¥'+(s.totalAmount||0)+'  定金 ¥'+(s.deposit||0)+'  尾款 ¥'+((s.totalAmount||0)-(s.deposit||0))]
+  ];
+  const noteLines = s.note ? String(s.note).split(/\n/).map(function(l){ return l.length>44? l.slice(0,44)+'…':l; }) : [];
+  const H=200+rows.length*44+noteLines.length*40+30;
   const c=document.createElement('canvas'); c.width=W; c.height=H;
   const g=c.getContext('2d');
   g.fillStyle='#fff8ef'; g.fillRect(0,0,W,H);
@@ -4399,16 +4412,6 @@ function subCapture(id){
   g.font='bold 34px sans-serif'; g.fillText('喜档管家 · 订单详情', 40, 70);
   g.fillStyle='#b8860b'; g.fillRect(40, 92, 670, 3);
   g.font='16px sans-serif'; g.fillStyle='#999'; g.fillText('生成于 '+new Date().toLocaleString('zh-CN'), 40, 122);
-  const rows=[
-    ['客户', s.clientName||''], ['酒店', s.hotel||''], ['厅名', s.hall||''], ['策划师', s.planner||''],
-    ['人员', (s.photographer||'未排')+(s.secondPhotographer?' / '+s.secondPhotographer:'')+(s.second2Photographer?' / '+s.second2Photographer:'')],
-    ['拍摄日期', s.shootDate||'未排期'],
-    ['人员到场', s.arrivalTime||'—'], ['新郎抵达', s.groomArrival||'—'],
-    ['下单日期', s.orderDate||'—'],
-    ['拍摄对象', (s.shootBride!==false?'拍新娘':'')+(s.shootGroom?' / 拍新郎':'')||'—'],
-    ['服务项目', ((s.pickup?'接送 ':'')+(s.dualCamera?'双机 ':'')+(s.noMorningGown?'无晨袍 ':'')+(s.personConfirmed?'已指定 ':'')||'—')],
-    ['金额', '总额 ¥'+(s.totalAmount||0)+'  定金 ¥'+(s.deposit||0)+'  尾款 ¥'+((s.totalAmount||0)-(s.deposit||0))]
-  ];
   let y=160;
   rows.forEach(function(r0){
     if(!r0[1]||r0[1]==='—') return;
@@ -4417,25 +4420,35 @@ function subCapture(id){
     g.fillText(r0[1], 170, y);
     y+=44;
   });
-  if(s.note){
+  if(noteLines.length){
     g.fillStyle='#888'; g.font='bold 22px sans-serif'; g.fillText('备注', 40, y);
     g.fillStyle='#222'; g.font='24px sans-serif';
-    const lines=s.note.length>52? s.note.slice(0,52)+'…':s.note;
-    g.fillText(lines, 170, y);
+    noteLines.forEach(function(l){ g.fillText(l, 170, y); y+=40; });
   }
   const img=c.toDataURL('image/png');
+  const fname='喜档管家订单-'+((s.clientName||'无客户'))+'-'+(s.shootDate||'未排期')+'.png';
   let m=document.getElementById('subCaptureModal');
   if(!m){
     m=document.createElement('div'); m.id='subCaptureModal';
-    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
-    m.innerHTML='<img style="max-width:88%;max-height:74%;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.4)">'+
-      '<div style="color:#fff;font-size:14px">长按图片可保存 · 点击空白处关闭</div>';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px';
+    m.innerHTML='<img style="max-width:88%;max-height:72%;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.4)">'+
+      '<div style="color:#fff;font-size:14px">长按图片可保存，或点击下方按钮下载</div>'+
+      '<div style="display:flex;gap:10px">'+
+      '<a class="subCap-dl" download="" style="background:#b8860b;color:#fff;text-decoration:none;padding:10px 22px;border-radius:10px;font-weight:700">⬇ 下载图片</a>'+
+      '<button class="subCap-x" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:10px 22px;border-radius:10px">关闭</button>'+
+      '</div>';
     m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
     document.body.appendChild(m);
+    m.querySelector('.subCap-dl').onclick=function(e){ e.stopPropagation(); };
+    m.querySelector('.subCap-x').onclick=function(){ m.remove(); };
   }
+  const dl=m.querySelector('.subCap-dl');
+  dl.setAttribute('href', img);
+  dl.setAttribute('download', fname);
   m.querySelector('img').src=img;
   m.style.display='flex';
 }
+
 function refreshPhotographerFilter(){
   const sel=$('filterPhotographer');
   if(!sel) return;
@@ -4453,6 +4466,15 @@ function openScheduleModal(id){
   const title=$('scheduleModalTitle');
   const s=id?DB.getSchedules().find(function(x){return x.id===id;}):null;
   title.textContent=s?'编辑档期':'新增档期';
+  const shareBtn=$('schedShareBtn');
+  if(shareBtn){
+    if(s){
+      shareBtn.style.display='';
+      shareBtn.onclick=function(e){ e.stopPropagation(); subCapture(s.id); };
+    }else{
+      shareBtn.style.display='none';
+    }
+  }
   $('fClient').value=s?s.clientName||'':'';
   $('fHotel').value=s?s.hotel||'':'';
   $('fHall').value=s?s.hall||'':'';
