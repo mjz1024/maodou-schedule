@@ -4391,7 +4391,18 @@ function toggleSubDetail(card, id){
   card.appendChild(d);
   card.classList.add('expanded');
 }
-/* 长按订单卡片 / 分享按钮：生成全字段订单图片（可保存/下载） */
+/* 长按订单卡片 / 分享按钮：生成全字段订单图片（自动折行，保证全部文字显示） */
+function wrapLines(g, text, maxW){
+  const chars=Array.from(String(text));
+  const out=[]; let line='';
+  for(let i=0;i<chars.length;i++){
+    const test=line+chars[i];
+    if(g.measureText(test).width>maxW && line){ out.push(line); line=chars[i]; }
+    else line=test;
+  }
+  if(line) out.push(line);
+  return out;
+}
 function subCapture(id){
   const s=DB.getSchedules().find(function(x){ return x.id===id; });
   if(!s) return;
@@ -4406,8 +4417,22 @@ function subCapture(id){
     ['服务项目', ((s.pickup?'接送 ':'')+(s.dualCamera?'双机 ':'')+(s.noMorningGown?'无晨袍 ':'')+(s.personConfirmed?'已指定 ':'')||'—')],
     ['金额', '总额 ¥'+(s.totalAmount||0)+'  定金 ¥'+(s.deposit||0)+'  尾款 ¥'+((s.totalAmount||0)-(s.deposit||0))]
   ];
-  const noteLines = s.note ? String(s.note).split(/\n/).map(function(l){ return l.length>44? l.slice(0,44)+'…':l; }) : [];
-  const H=200+rows.length*44+noteLines.length*40+30;
+  // 预计算每行折行数（值区宽度 = 750-40-170-20 = 520）
+  const valW=520;
+  const c0=document.createElement('canvas'); const g0=c0.getContext('2d'); g0.font='24px sans-serif';
+  let H=190;
+  const rowPlan=[];
+  rows.forEach(function(r0){
+    if(!r0[1]||r0[1]==='—'){ rowPlan.push(0); return; }
+    const lines=wrapLines(g0, r0[1], valW);
+    rowPlan.push(lines.length);
+    H+=lines.length*44;
+  });
+  g0.font='24px sans-serif';
+  const noteRaw=s.note?String(s.note).split(/\n/):[];
+  const notePlan=noteRaw.map(function(l){ return wrapLines(g0, l, valW); });
+  notePlan.forEach(function(ls){ H+=ls.length*40; });
+  H+=30;
   const c=document.createElement('canvas'); c.width=W; c.height=H;
   const g=c.getContext('2d');
   g.fillStyle='#fff8ef'; g.fillRect(0,0,W,H);
@@ -4416,17 +4441,21 @@ function subCapture(id){
   g.fillStyle='#b8860b'; g.fillRect(40, 92, 670, 3);
   g.font='16px sans-serif'; g.fillStyle='#999'; g.fillText('生成于 '+new Date().toLocaleString('zh-CN'), 40, 122);
   let y=160;
-  rows.forEach(function(r0){
+  g.font='24px sans-serif';
+  rows.forEach(function(r0,ri){
+    const lines=rowPlan[ri];
     if(!r0[1]||r0[1]==='—') return;
     g.fillStyle='#888'; g.font='bold 22px sans-serif'; g.fillText(r0[0], 40, y);
     g.fillStyle='#222'; g.font='24px sans-serif';
-    g.fillText(r0[1], 170, y);
-    y+=44;
+    wrapLines(g, r0[1], valW).forEach(function(l){ g.fillText(l, 170, y); y+=44; });
   });
-  if(noteLines.length){
+  if(noteRaw.length){
     g.fillStyle='#888'; g.font='bold 22px sans-serif'; g.fillText('备注', 40, y);
+    y+=34;
     g.fillStyle='#222'; g.font='24px sans-serif';
-    noteLines.forEach(function(l){ g.fillText(l, 170, y); y+=40; });
+    notePlan.forEach(function(ls){
+      ls.forEach(function(l){ g.fillText(l, 170, y); y+=40; });
+    });
   }
   const img=c.toDataURL('image/png');
   const fname='喜档管家订单-'+((s.clientName||'无客户'))+'-'+(s.shootDate||'未排期')+'.png';
