@@ -4270,6 +4270,8 @@ function upcomingDays(){
 }
 function schedCardHTML(s, upcoming){
   const flags=[];
+  const shootFlag=((s.shootBride!==false?'拍新娘':'')+(s.shootGroom?'+拍新郎':''));
+  if(shootFlag) flags.push(shootFlag);
   if(s.pickup) flags.push('接送');
   if(s.dualCamera) flags.push('双机');
   if(s.noMorningGown) flags.push('无晨袍');
