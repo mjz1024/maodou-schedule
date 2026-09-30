@@ -3480,7 +3480,8 @@ async function pullAllToLocal(force, onProgress){
     const nowIso=new Date().toISOString();
     const doGet=function(name){
       if(skip(name)) return Promise.resolve(null);
-      const since=_getLastSync(name);
+      // 元数据小集合每次登录全量拉取并集对齐（防增量基线缺口漏数据）；仅档期订单保持增量提速
+      const since=(name==='schedules')?_getLastSync(name):'';
       return getAllDocsInc(name, since).then(function(d){ _stepP(name); _setLastSync(name, nowIso); return d; });
     };
     const [usersD,schedD,settingsD,dayD,sessionsD,photoD,hotelD,opLogD,topicD,commentD]=await Promise.all([
