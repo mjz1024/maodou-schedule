@@ -242,8 +242,10 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .occ-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .occ-title .occ-date{color:var(--text3);font-weight:600;font-size:12px}
 .occ-list{display:flex;flex-wrap:wrap;gap:7px}
-.occ-chip{display:inline-block;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;background:var(--input-bg);color:var(--text1);border:1px solid var(--border)}
-.occ-chip.occ-busy{background:var(--bg);color:var(--text3);border-color:var(--border);opacity:.65;text-decoration:line-through}
+.occ-chip{display:inline-block;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);cursor:pointer;user-select:none;transition:background .15s}
+.occ-chip:active{transform:scale(.95)}
+.occ-chip.occ-busy{background:var(--bg);color:var(--text3);border-color:var(--border);opacity:.65;text-decoration:line-through;cursor:pointer}
+.occ-chip.occ-leave{background:#fde8e8;color:#d93a3a;border-color:#f3b4b4;opacity:1;text-decoration:none}
 .occ-chip.occ-empty-hint{background:transparent;border-style:dashed;color:var(--text3);font-weight:400}
 .cal-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
 .cal-nav{display:flex;align-items:center;gap:6px}
@@ -262,8 +264,10 @@ select option:disabled{color:#b5aea4;background:#f6f3ee}
 .cal-day.selected{background:var(--primary)}
 .cal-day.selected .d-num,.cal-day.selected .d-count{color:#fff}
 .d-num{font-size:14px;font-weight:600}
+.d-lunar{font-size:9px;color:var(--text3);margin-top:1px;font-weight:500;line-height:1.2;max-width:100%;overflow:hidden;white-space:nowrap}
 .d-count{font-size:10px;color:var(--text3);margin-top:2px;font-weight:600}
 .cal-day.selected .d-count{color:rgba(255,255,255,.85)}
+.cal-day.selected .d-lunar{color:rgba(255,255,255,.75)}
 .dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;justify-content:center;max-width:80%}
 .dots i{width:5px;height:5px;border-radius:50%;background:var(--primary)}
 .cal-day.selected .dots i{background:#fff}
@@ -4056,6 +4060,68 @@ function renderTicker(){
     }
   };
 }
+/* ============ 农历显示（1900-2100 查表） ============ */
+var _lunarInfo=[0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+0x092e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+0x0d520];
+var _lunarMon=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+var _lunarDay=['一','二','三','四','五','六','七','八','九','十'];
+function _lLeapMonth(y){ return _lunarInfo[y-1900]&0xf; }
+function _lLeapDays(y){ return _lLeapMonth(y)?((_lunarInfo[y-1900]&0x10000)?30:29):0; }
+function _lMonthDays(y,mon){ return (_lunarInfo[y-1900]&(0x10000>>mon))?30:29; }
+function _lYearDays(y){
+  var sum=348;
+  for(var i=0x8000;i>0x8;i>>=1) sum+=(_lunarInfo[y-1900]&i)?1:0;
+  return sum+_lLeapDays(y);
+}
+function solarToLunar(y,m,d){
+  var offset=Math.round((new Date(y,m-1,d)-new Date(1900,0,31))/86400000);
+  var i,temp=0;
+  for(i=1900;i<2101&&offset>0;i++){ temp=_lYearDays(i); offset-=temp; }
+  if(offset<0){ offset+=temp; i--; }
+  var year=i, leap=_lLeapMonth(year), isLeap=false;
+  for(i=1;i<13&&offset>0;i++){
+    if(leap>0&&i===(leap+1)&&!isLeap){ --i; isLeap=true; temp=_lLeapDays(year); }
+    else { temp=_lMonthDays(year,i); }
+    if(isLeap&&i===(leap+1)) isLeap=false;
+    offset-=temp;
+  }
+  if(offset===0&&leap>0&&i===leap+1){ if(isLeap){ isLeap=false; } else { isLeap=true; --i; } }
+  if(offset<0){ offset+=temp; --i; }
+  return { year:year, month:i, day:offset+1, isLeap:isLeap };
+}
+function _lunarDayText(day){
+  if(day===10) return '初十';
+  if(day===20) return '二十';
+  if(day===30) return '三十';
+  var t=day<10?'初':(day<20?'十':'廿');
+  return t+_lunarDay[(day%10)-1];
+}
+function lunarLabel(y,m,d){
+  try{
+    var l=solarToLunar(y,m,d);
+    if(l.day===1) return (l.isLeap?'闰':'')+_lunarMon[l.month-1]+'月';
+    return _lunarDayText(l.day);
+  }catch(e){ return ''; }
+}
 function renderCalendar(){
   initCalDates();
   renderTicker();
@@ -4097,8 +4163,11 @@ function renderCalendar(){
     const cnt=countMap[dateStr]||0;
     const isToday=dateStr===today;
     const isSel=dateStr===selectedDate;
+    let lunarText='';
+    try{ lunarText=lunarLabel(y,m+1,d); }catch(e){}
     html+='<div class="cal-day'+(isToday?' today':'')+(isSel?' selected':'')+'" data-date="'+dateStr+'">'+
       '<span class="d-num">'+d+'</span>'+
+      '<span class="d-lunar">'+lunarText+'</span>'+
       (cnt>0?'<span class="d-count">'+cnt+'单</span>':'')+
       '</div>';
   }
@@ -4112,16 +4181,23 @@ function renderCalendar(){
     if(s.secondPhotographer) occSet[s.secondPhotographer]=true;
     if(s.second2Photographer) occSet[s.second2Photographer]=true;
   });
+  const leaveSet={};
+  try{
+    const _dsAll=DB.getDaySettings();
+    const _dsCur=_dsAll[occDate]||{};
+    (_dsCur.leaveList||[]).forEach(function(nm){ if(nm) leaveSet[nm]=true; });
+  }catch(e){}
   const midOcc=getCurrentMasterId()||'_default';
   const peopleArr=DB.getPhoto(midOcc).slice().filter(function(nm){ return String(nm).indexOf('喜玛拾光')<0; });
   const allPeople=[];
   peopleArr.forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
   Object.keys(occSet).forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
   if(allPeople.length){
-    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · '+dayScheds.length+'单</span></div><div class="occ-list">';
+    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · '+dayScheds.length+'单</span><span style="font-size:10px;color:var(--text3);font-weight:400">（单击名字标记请假，再点取消）</span></div><div class="occ-list">';
     allPeople.forEach(function(nm){
       const busy=!!occSet[nm];
-      html+='<span class="occ-chip'+(busy?' occ-busy':'')+'"'+(busy?' title="当天已占用"':' title="当天空闲"')+'>'+esc(nm)+(busy?' 已排':'')+'</span>';
+      const leave=!!leaveSet[nm];
+      html+='<span class="occ-chip'+(busy?' occ-busy':'')+(leave?' occ-leave':'')+'" data-occ="'+esc(nm)+'" data-leave="'+(leave?'1':'0')+'" title="'+(leave?'当天请假，点击取消':(busy?'当天已占用，点击标记请假':'当天空闲，点击标记请假'))+'">'+esc(nm)+(busy?' 已排':'')+(leave?' 请假':'')+'</span>';
     });
     html+='</div></div>';
   } else {
@@ -4144,6 +4220,30 @@ function renderCalendar(){
   $('unschedBtn').onclick=showUnschedModal;
   cont.querySelectorAll('.cal-day[data-date]').forEach(function(el){
     el.onclick=function(){ selectedDate=el.dataset.date; renderCalendar(); renderScheduleList(); };
+  });
+  /* 人员占用：单击标记请假（变红），再点取消；主账号可改，子账号只读 */
+  cont.querySelectorAll('.occ-chip[data-occ]').forEach(function(el){
+    el.onclick=function(){
+      if(!isMasterLike()){ toast('子账号仅可查看，不能修改','error'); return; }
+      const nm=el.dataset.occ;
+      const curLeave=el.dataset.leave==='1';
+      const ds3=DB.getDaySettings();
+      const cur3=ds3[occDate]||{date:occDate};
+      let arr=(cur3.leaveList||[]).slice();
+      if(curLeave){
+        arr=arr.filter(function(x){return x!==nm;});
+      } else {
+        if(arr.indexOf(nm)<0) arr.push(nm);
+      }
+      cur3.leaveList=arr;
+      cur3.updatedAt=new Date().toISOString();
+      cur3.masterId=getCurrentMasterId();
+      ds3[occDate]=cur3;
+      DB.setDaySettings(ds3);
+      markDirty('day_settings'); flushPush();
+      toast(curLeave?'已取消请假：'+nm:'已标记请假：'+nm, curLeave?'info':'ok');
+      renderCalendar();
+    };
   });
 }
 
@@ -4532,6 +4632,15 @@ function openScheduleModal(id){
   show('scheduleModal');
 }
 /* —— 人员下拉（统一人员表 + 同一天互斥占用） —— */
+function dayLeaveNames(dateStr){
+  const names={};
+  try{
+    const ds0=DB.getDaySettings();
+    const cur0=ds0[dateStr]||{};
+    (cur0.leaveList||[]).forEach(function(nm){ if(nm) names[nm]=true; });
+  }catch(e){}
+  return names;
+}
 function dayOccupiedNames(dateStr, excludeId){
   const names={};
   DB.getSchedules().forEach(function(x){
@@ -4541,6 +4650,8 @@ function dayOccupiedNames(dateStr, excludeId){
     if(x.secondPhotographer) names[x.secondPhotographer]=true;
     if(x.second2Photographer) names[x.second2Photographer]=true;
   });
+  const lv=dayLeaveNames(dateStr);
+  Object.keys(lv).forEach(function(nm){ if(nm) names[nm]=true; });
   return names;
 }
 function personNameList(extra){
@@ -4597,6 +4708,7 @@ function renderPhotoPop(filter){
   const curVal=input.value.trim();
   const dateStr=$('fShootDate').value;
   const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const leave=dateStr?dayLeaveNames(dateStr):{};
   const kw=(filter||'').toLowerCase();
   let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
   if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
@@ -4604,7 +4716,7 @@ function renderPhotoPop(filter){
   pop.innerHTML=list.map(function(p){
     const busy=!!occ[p] && p!==curVal;
     return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp="'+esc(p)+'"'+(busy?' data-pp-off="1"':'')+'>'+
-      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">当天已占用</span>':'')+'</div>';
+      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+(leave[p]?'当天请假':'当天已占用')+'</span>':'')+'</div>';
   }).join('');
   pop.hidden=false;
   pop.querySelectorAll('[data-pp]').forEach(function(el){
@@ -4631,6 +4743,7 @@ function renderSecondPop(filter){
   const mainVal=$('fPhotographer').value.trim();
   const dateStr=$('fShootDate').value;
   const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const leave=dateStr?dayLeaveNames(dateStr):{};
   const kw=(filter||'').toLowerCase();
   let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
   if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
@@ -4638,7 +4751,7 @@ function renderSecondPop(filter){
   pop.innerHTML=list.map(function(p){
     const busy=(!!occ[p] || (mainVal&&p===mainVal)) && p!==curVal;
     return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp2="'+esc(p)+'"'+(busy?' data-pp2-off="1"':'')+'>'+
-      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+(mainVal&&p===mainVal?'已选为主人员':'当天已占用')+'</span>':'')+'</div>';
+      '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+(leave[p]?'当天请假':(mainVal&&p===mainVal?'已选为主人员':'当天已占用'))+'</span>':'')+'</div>';
   }).join('');
   pop.hidden=false;
   pop.querySelectorAll('[data-pp2]').forEach(function(el){
@@ -4666,13 +4779,14 @@ function renderSecond2Pop(filter){
   const secondVal=$('fSecond').value.trim();
   const dateStr=$('fShootDate').value;
   const occ=dateStr?dayOccupiedNames(dateStr, editingScheduleId):{};
+  const leave=dateStr?dayLeaveNames(dateStr):{};
   const kw=(filter||'').toLowerCase();
   let list=people.filter(function(p){ return !kw || p.toLowerCase().indexOf(kw)>=0; });
   if(curVal && list.indexOf(curVal)<0) list.unshift(curVal);
   if(!list.length){ pop.innerHTML='<div class="pp-item off">无匹配人员，可直接输入新名称</div>'; pop.hidden=false; return; }
   pop.innerHTML=list.map(function(p){
     const busy=(!!occ[p] || (mainVal&&p===mainVal) || (secondVal&&p===secondVal)) && p!==curVal;
-    const why=(mainVal&&p===mainVal)?'已选为主人员':((secondVal&&p===secondVal)?'已选为副机位':'当天已占用');
+    const why=(leave[p]?'当天请假':((mainVal&&p===mainVal)?'已选为主人员':((secondVal&&p===secondVal)?'已选为副机位':'当天已占用')));
     return '<div class="pp-item'+(p===curVal?' cur':'')+(busy?' off':'')+'" data-pp3="'+esc(p)+'"'+(busy?' data-pp3-off="1"':'')+'>'+
       '<span>'+esc(p)+'</span>'+(busy?'<span style="color:var(--text3);font-size:11px">'+why+'</span>':'')+'</div>';
   }).join('');
