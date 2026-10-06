@@ -4193,7 +4193,7 @@ function renderCalendar(){
   peopleArr.forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
   Object.keys(occSet).forEach(function(nm){ if(nm && allPeople.indexOf(nm)<0) allPeople.push(nm); });
   if(allPeople.length){
-    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · '+dayScheds.length+'单</span><span style="font-size:10px;color:var(--text3);font-weight:400">（单击名字标记请假，再点取消）</span></div><div class="occ-list">';
+    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · '+dayScheds.length+'单</span><span style="font-size:10px;color:var(--text3);font-weight:400">（单击请假 · 长按查单）</span></div><div class="occ-list">';
     allPeople.forEach(function(nm){
       const busy=!!occSet[nm];
       const leave=!!leaveSet[nm];
@@ -4223,7 +4223,17 @@ function renderCalendar(){
   });
   /* 人员占用：单击标记请假（变红），再点取消；主账号可改，子账号只读 */
   cont.querySelectorAll('.occ-chip[data-occ]').forEach(function(el){
+    let _pt=null, _long=false;
+    el.addEventListener('pointerdown',function(){
+      _long=false;
+      const nm=el.dataset.occ;
+      _pt=setTimeout(function(){ _long=true; showPersonOrdersModal(nm, occDate); },600);
+    });
+    el.addEventListener('pointerup',function(){ if(_pt){ clearTimeout(_pt); _pt=null; } });
+    el.addEventListener('pointerleave',function(){ if(_pt){ clearTimeout(_pt); _pt=null; } });
+    el.addEventListener('touchcancel',function(){ if(_pt){ clearTimeout(_pt); _pt=null; } });
     el.onclick=function(){
+      if(_long){ _long=false; return; } /* 长按已处理，抑制本次单击 */
       if(!isMasterLike()){ toast('子账号仅可查看，不能修改','error'); return; }
       const nm=el.dataset.occ;
       const curLeave=el.dataset.leave==='1';
@@ -4244,6 +4254,45 @@ function renderCalendar(){
       toast(curLeave?'已取消请假：'+nm:'已标记请假：'+nm, curLeave?'info':'ok');
       renderCalendar();
     };
+  });
+}
+
+/* ============ 人员占用：长按人员 → 弹出当日之后该人员参与的订单列表 ============ */
+function showPersonOrdersModal(nm, fromDate){
+  if(!nm) return;
+  const from=fromDate||today;
+  const scheds=DB.getSchedules().filter(function(s){
+    if(!s.shootDate || s.shootDate<from) return false;
+    return s.photographer===nm || s.secondPhotographer===nm || s.second2Photographer===nm;
+  }).sort(function(a,b){ return a.shootDate<b.shootDate?-1:1; });
+  const overlay=document.createElement('div');
+  overlay.className='modal-mask';
+  overlay.style.display='flex';
+  let html='<div class="modal"><div class="modal-head"><h3>'+esc(nm)+' 的后续订单（'+scheds.length+'）</h3><button class="modal-close">✕</button></div><div class="modal-body">';
+  if(!scheds.length){
+    html+='<div class="empty-hint" style="padding:16px">'+esc(from)+' 之后暂无「'+esc(nm)+'」参与的订单</div>';
+  }else{
+    html+='<div class="py-year-list" style="box-shadow:none;padding:0">';
+    scheds.forEach(function(s){
+      const d=s.shootDate.split('-');
+      const ds=(d[1]||'')+'月'+(d[2]||'')+'日';
+      const week=['日','一','二','三','四','五','六'][new Date(s.shootDate).getDay()];
+      const role=(s.photographer===nm?'主摄':(s.secondPhotographer===nm?'副机':'副2'));
+      html+='<div class="py-year-item" data-pyd="'+esc(s.id)+'">'+
+        '<div class="r1"><span class="date">'+ds+' 周'+week+'</span><span class="client">'+esc(s.clientName)+'</span><span style="font-size:11px;color:var(--primary)">'+role+'</span></div>'+
+        '<div class="r2">'+(s.hotel?esc(s.hotel)+' ':'')+(s.hall?esc(s.hall):'')+(s.planner?' · 策划师:'+esc(s.planner):'')+'</div>'+
+        '</div>';
+    });
+    html+='</div>';
+    html+='<div style="font-size:11px;color:var(--text3);padding:10px 2px 2px">点击订单可打开详情</div>';
+  }
+  html+='</div></div>';
+  overlay.innerHTML=html;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.modal-close').onclick=function(){ overlay.remove(); };
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelectorAll('[data-pyd]').forEach(function(el){
+    el.onclick=function(){ overlay.remove(); openScheduleModal(el.dataset.pyd); };
   });
 }
 
