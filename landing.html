@@ -4,118 +4,164 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>喜档管家 — 天下喜事 有你而庆</title>
-<meta name="description" content="喜档管家：专为婚庆行业打造的档期管理与广场社交一体化平台。多端支持，云端同步，让每一场喜事都井井有条。">
+<meta name="description" content="喜档管家：专为婚庆行业打造的档期管理与广场社交一体化平台。农历档期、人员调度、酒店统筹、留言广场、订单分享，云端实时同步，多端免费使用。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0d15'/%3E%3Crect x='4' y='4' width='56' height='56' rx='11' fill='none' stroke='%23d4af37' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='32' font-weight='bold' text-anchor='middle' fill='%23f2d98c'%3E喜%3C/text%3E%3C/svg%3E">
 <style>
 :root{
+  --ink:#07070b;
+  --ink2:#0d0d15;
+  --ink3:#14141e;
   --gold:#d4af37;
-  --gold-l:#f0d68a;
-  --gold-d:#a8842c;
+  --gold-l:#f2d98c;
+  --gold-d:#8a6d1f;
   --red:#c0392b;
-  --bg0:#0a0a10;
-  --bg1:#12121b;
-  --bg2:#1a1a26;
-  --card:rgba(255,255,255,.045);
+  --red-l:#e05a48;
+  --text:#f2efe6;
+  --text2:#b9b3a5;
+  --text3:#7d786a;
   --line:rgba(212,175,55,.22);
-  --text:#f4f1ea;
-  --text2:#c9c4b8;
-  --text3:#8a857a;
+  --card:rgba(255,255,255,.035);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-  background:radial-gradient(1200px 600px at 80% -10%,rgba(212,175,55,.10),transparent 60%),
-             radial-gradient(900px 500px at -10% 30%,rgba(192,57,43,.07),transparent 55%),
-             linear-gradient(180deg,var(--bg0),var(--bg1) 40%,#0c0c13);
+  background:
+    radial-gradient(1100px 520px at 85% -8%,rgba(212,175,55,.12),transparent 60%),
+    radial-gradient(800px 460px at -8% 28%,rgba(192,57,43,.08),transparent 55%),
+    linear-gradient(180deg,#07070b,#0b0b12 38%,#08080e);
   color:var(--text);
   min-height:100vh;
   overflow-x:hidden;
 }
-.wrap{max-width:1100px;margin:0 auto;padding:0 22px}
-/* ---------- 顶部导航 ---------- */
-.nav{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,10,16,.72);border-bottom:1px solid rgba(212,175,55,.12)}
-.nav-in{max-width:1100px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
-.brand img{width:40px;height:40px;border-radius:11px;box-shadow:0 0 18px rgba(212,175,55,.35)}
-.brand b{font-size:19px;letter-spacing:2px;background:linear-gradient(120deg,#fff,var(--gold-l) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.nav-links{display:flex;gap:26px;align-items:center}
-.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;letter-spacing:1px;transition:color .2s}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+a{text-decoration:none;color:inherit}
+
+/* ===== 顶部导航 ===== */
+.nav{position:fixed;top:0;left:0;right:0;z-index:60;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(7,7,11,.78);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1120px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.brand img{width:38px;height:38px;border-radius:10px;box-shadow:0 0 16px rgba(212,175,55,.35)}
+.brand b{font-size:18px;letter-spacing:3px;background:linear-gradient(120deg,#fff,var(--gold-l) 55%,var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.nav-links{display:flex;gap:24px;align-items:center}
+.nav-links a{color:var(--text2);font-size:13.5px;letter-spacing:1.5px;transition:color .2s;white-space:nowrap}
 .nav-links a:hover{color:var(--gold-l)}
-.nav-cta{background:linear-gradient(120deg,var(--gold-d),var(--gold));color:#1a1204!important;font-weight:700;padding:9px 20px;border-radius:999px}
-.nav-cta:hover{color:#1a1204!important;box-shadow:0 0 22px rgba(212,175,55,.45)}
-/* ---------- Hero ---------- */
-.hero{position:relative;padding:150px 22px 80px;text-align:center}
-.hero .logo{width:130px;height:130px;border-radius:32px;box-shadow:0 0 60px rgba(212,175,55,.4),0 20px 50px rgba(0,0,0,.5);animation:float 5s ease-in-out infinite;margin:0 auto 34px}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.hero h1{font-size:clamp(40px,7vw,68px);font-weight:800;letter-spacing:6px;background:linear-gradient(120deg,#fff 10%,var(--gold-l) 45%,var(--gold) 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15}
-.hero .slogan{margin-top:18px;font-size:clamp(16px,2.4vw,22px);color:var(--gold-l);letter-spacing:8px;font-weight:600}
-.hero .desc{margin:22px auto 0;max-width:640px;color:var(--text3);font-size:15px;line-height:1.9;letter-spacing:1px}
-.hero-btns{margin-top:40px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:9px;padding:15px 34px;border-radius:999px;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:1px;transition:all .25s;border:none;cursor:pointer}
-.btn-gold{background:linear-gradient(120deg,var(--gold-d),var(--gold) 60%,var(--gold-l));color:#1a1204;box-shadow:0 8px 30px rgba(212,175,55,.35)}
-.btn-gold:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(212,175,55,.5)}
-.btn-ghost{background:transparent;color:var(--text);border:1.5px solid rgba(212,175,55,.5)}
+.nav-login{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(120deg,var(--gold-d),var(--gold) 55%,var(--gold-l));color:#181104!important;font-weight:700;padding:9px 22px;border-radius:999px;font-size:13.5px;letter-spacing:1px;box-shadow:0 4px 18px rgba(212,175,55,.3);transition:box-shadow .25s,transform .2s}
+.nav-login:hover{box-shadow:0 6px 26px rgba(212,175,55,.5);transform:translateY(-1px)}
+
+/* ===== Hero ===== */
+.hero{position:relative;padding:170px 22px 86px;text-align:center;overflow:hidden}
+.xi{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(52vw,620px);font-weight:900;color:rgba(212,175,55,.045);letter-spacing:0;line-height:1;user-select:none;pointer-events:none;font-family:Georgia,"Songti SC","STSong",serif}
+.rays{position:absolute;top:50%;left:50%;width:1px;height:1px;pointer-events:none}
+.ray{position:absolute;left:0;top:0;width:0;height:1px;background:linear-gradient(90deg,rgba(212,175,55,.7),transparent);transform-origin:left center}
+.deco{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+.deco-1{width:460px;height:460px;background:rgba(212,175,55,.16);top:-130px;left:-140px}
+.deco-2{width:400px;height:400px;background:rgba(192,57,43,.12);bottom:-90px;right:-120px}
+.hero-in{position:relative;z-index:2}
+.hero .logo{width:128px;height:128px;border-radius:30px;box-shadow:0 0 70px rgba(212,175,55,.42),0 24px 60px rgba(0,0,0,.55);animation:float 5.5s ease-in-out infinite;margin:0 auto 32px;display:block}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
+.hero h1{font-size:clamp(42px,7.2vw,72px);font-weight:800;letter-spacing:10px;background:linear-gradient(120deg,#fff 8%,var(--gold-l) 42%,var(--gold) 78%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.12;margin-left:10px}
+.hero .slogan{margin-top:20px;font-size:clamp(15px,2.3vw,21px);color:var(--gold-l);letter-spacing:10px;font-weight:600}
+.hero .desc{margin:24px auto 0;max-width:660px;color:var(--text3);font-size:14.5px;line-height:2;letter-spacing:1px}
+.hero .desc b{color:var(--gold-l);font-weight:600}
+.hero-btns{margin-top:42px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:15px 36px;border-radius:999px;font-size:15.5px;font-weight:700;letter-spacing:2px;transition:all .25s;border:none;cursor:pointer}
+.btn-gold{background:linear-gradient(120deg,var(--gold-d),var(--gold) 55%,var(--gold-l));color:#181104;box-shadow:0 10px 34px rgba(212,175,55,.34)}
+.btn-gold:hover{transform:translateY(-3px);box-shadow:0 16px 44px rgba(212,175,55,.5)}
+.btn-ghost{background:rgba(255,255,255,.03);color:var(--text);border:1.5px solid rgba(212,175,55,.45)}
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold-l);transform:translateY(-3px)}
-.hero .ver-tip{margin-top:22px;font-size:12.5px;color:var(--text3);letter-spacing:1px}
-.hero .ver-tip b{color:var(--gold-l)}
-/* 装饰光点 */
-.deco{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;pointer-events:none}
-.deco-1{width:420px;height:420px;background:rgba(212,175,55,.18);top:-120px;left:-120px}
-.deco-2{width:380px;height:380px;background:rgba(192,57,43,.14);bottom:-80px;right:-100px}
-/* ---------- 区块标题 ---------- */
-.sec{padding:90px 22px}
-.sec-head{text-align:center;margin-bottom:56px}
-.sec-head .k{font-size:13px;letter-spacing:6px;color:var(--gold);text-transform:uppercase}
-.sec-head h2{font-size:clamp(28px,4.5vw,42px);margin-top:12px;letter-spacing:3px;font-weight:800}
-.sec-head p{color:var(--text3);margin-top:14px;font-size:15px;letter-spacing:1px}
-/* ---------- 功能卡片 ---------- */
-.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
-.feat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:34px 28px;transition:all .3s;backdrop-filter:blur(8px)}
-.feat:hover{transform:translateY(-6px);border-color:rgba(212,175,55,.5);box-shadow:0 18px 44px rgba(0,0,0,.45),0 0 30px rgba(212,175,55,.08)}
-.feat .ic{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,rgba(212,175,55,.22),rgba(192,57,43,.16));border:1px solid var(--line);margin-bottom:20px}
-.feat h3{font-size:19px;letter-spacing:2px;margin-bottom:10px}
-.feat p{color:var(--text3);font-size:13.5px;line-height:1.85}
-/* ---------- 下载区 ---------- */
-.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
-.dl-card{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:22px;padding:38px 30px;text-align:center;transition:all .3s;overflow:hidden}
-.dl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.6}
-.dl-card:hover{transform:translateY(-6px);box-shadow:0 20px 48px rgba(0,0,0,.5),0 0 34px rgba(212,175,55,.12)}
-.dl-card .os{width:74px;height:74px;margin:0 auto 20px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.05));border:1px solid var(--line)}
-.dl-card h3{font-size:21px;letter-spacing:2px}
-.dl-card .meta{margin-top:8px;font-size:12.5px;color:var(--text3);letter-spacing:1px}
+.hero .tags{margin-top:30px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.tag{font-size:12px;letter-spacing:1.5px;color:var(--text2);border:1px solid rgba(212,175,55,.25);background:rgba(212,175,55,.05);padding:6px 15px;border-radius:999px}
+.tag b{color:var(--gold-l)}
+
+/* ===== 区块标题 ===== */
+.sec{padding:88px 22px}
+.sec-head{text-align:center;margin-bottom:54px}
+.sec-head .k{font-size:12px;letter-spacing:8px;color:var(--gold);text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:14px}
+.sec-head .k::before,.sec-head .k::after{content:'';display:block;width:34px;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.sec-head .k::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.sec-head h2{font-size:clamp(28px,4.4vw,42px);margin-top:14px;letter-spacing:5px;font-weight:800}
+.sec-head p{color:var(--text3);margin-top:14px;font-size:14.5px;letter-spacing:1.5px}
+
+/* ===== 功能 ===== */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px 26px;transition:all .3s;position:relative;overflow:hidden}
+.feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s}
+.feat:hover{transform:translateY(-6px);border-color:rgba(212,175,55,.5);box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 26px rgba(212,175,55,.08)}
+.feat:hover::after{opacity:.8}
+.feat .ic{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(192,57,43,.12));border:1px solid var(--line);margin-bottom:18px}
+.feat .ic svg{width:26px;height:26px;stroke:var(--gold-l)}
+.feat h3{font-size:17.5px;letter-spacing:2px;margin-bottom:9px}
+.feat p{color:var(--text3);font-size:14px;line-height:1.9}
+.feat .hot{position:absolute;top:16px;right:16px;font-size:10px;letter-spacing:1px;color:var(--gold-l);border:1px solid rgba(212,175,55,.4);border-radius:999px;padding:3px 9px;background:rgba(212,175,55,.08)}
+
+/* ===== 下载 ===== */
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.dl-card{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:20px;padding:36px 26px;text-align:center;transition:all .3s;overflow:hidden}
+.dl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.55}
+.dl-card:hover{transform:translateY(-6px);box-shadow:0 20px 46px rgba(0,0,0,.5),0 0 30px rgba(212,175,55,.12)}
+.dl-card .os{width:70px;height:70px;margin:0 auto 18px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.05));border:1px solid var(--line)}
+.dl-card .os svg{width:36px;height:36px;stroke:var(--gold-l)}
+.dl-card h3{font-size:20px;letter-spacing:3px}
+.dl-card .meta{margin-top:8px;font-size:12px;color:var(--text3);letter-spacing:1px;line-height:1.8}
 .dl-card .meta b{color:var(--gold-l)}
-.dl-card .btn{margin-top:26px;width:100%;justify-content:center}
-.btn-dl{background:linear-gradient(120deg,var(--gold-d),var(--gold));color:#1a1204;font-size:15px;padding:13px 0}
-.btn-dl:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(212,175,55,.45)}
-/* ---------- 网页版 ---------- */
-.web-sec{position:relative}
-.web-card{background:linear-gradient(150deg,rgba(212,175,55,.10),rgba(10,10,16,.4) 45%),var(--card);border:1px solid var(--line);border-radius:26px;padding:60px 40px;text-align:center;overflow:hidden}
-.web-card h2{font-size:clamp(26px,4vw,38px);letter-spacing:4px;font-weight:800}
-.web-card .web-ico{font-size:44px;margin-bottom:16px}
-.web-card p{color:var(--text2);margin:16px auto 0;max-width:520px;line-height:1.9;font-size:14.5px;letter-spacing:1px}
+.dl-card .btn{margin-top:24px;width:100%;justify-content:center}
+.btn-dl{background:linear-gradient(120deg,var(--gold-d),var(--gold));color:#181104;font-size:14.5px;padding:13px 0;box-shadow:0 8px 24px rgba(212,175,55,.28)}
+.btn-dl:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(212,175,55,.45)}
+.dl-tip{text-align:center;color:var(--text3);font-size:12.5px;margin-top:28px;letter-spacing:1px;line-height:2}
+
+/* ===== 更新日志 ===== */
+.log-wrap{max-width:760px;margin:0 auto}
+.log-item{position:relative;padding:0 0 34px 34px;border-left:1px solid rgba(212,175,55,.28)}
+.log-item:last-child{border-left-color:transparent;padding-bottom:6px}
+.log-item::before{content:'';position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.8)}
+.log-item .v{display:inline-flex;align-items:center;gap:10px;font-size:14px;letter-spacing:2px;color:var(--gold-l);font-weight:700}
+.log-item .v em{font-style:normal;font-size:11px;color:var(--text3);letter-spacing:2px;font-weight:500;border:1px solid rgba(212,175,55,.3);border-radius:999px;padding:2px 10px;background:rgba(212,175,55,.06)}
+.log-item h4{margin-top:10px;font-size:16.5px;letter-spacing:2px}
+.log-item ul{margin-top:10px;list-style:none}
+.log-item li{position:relative;padding-left:16px;color:var(--text2);font-size:14px;line-height:1.95;letter-spacing:.5px}
+.log-item li::before{content:'';position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:rgba(212,175,55,.55)}
+.log-more{margin-top:26px;text-align:center;color:var(--text3);font-size:12px;letter-spacing:2px}
+
+/* ===== 网页版 ===== */
+.web-card{background:linear-gradient(150deg,rgba(212,175,55,.11),rgba(8,8,14,.45) 48%),var(--card);border:1px solid var(--line);border-radius:24px;padding:58px 40px;text-align:center;overflow:hidden;position:relative}
+.web-card::after{content:'囍';position:absolute;right:-14px;bottom:-36px;font-size:150px;color:rgba(212,175,55,.05);font-family:Georgia,"Songti SC",serif;pointer-events:none;user-select:none}
+.web-card h2{font-size:clamp(25px,3.8vw,36px);letter-spacing:5px;font-weight:800}
+.web-card p{color:var(--text2);margin:16px auto 0;max-width:520px;line-height:2;font-size:14px;letter-spacing:1px}
 .web-card .btn{margin-top:30px}
-.web-url{margin-top:18px;font-size:13px;color:var(--text3);letter-spacing:1px}
-.web-url code{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;color:var(--gold-l);border:1px solid var(--line)}
-/* ---------- 页脚 ---------- */
-.foot{margin-top:40px;border-top:1px solid rgba(212,175,55,.12);padding:44px 22px;text-align:center;color:var(--text3)}
-.foot .brand-l{font-size:18px;letter-spacing:4px;color:var(--text2);margin-bottom:12px}
-.foot .copy{font-size:12px;letter-spacing:1px;line-height:2}
-.foot .xim{font-size:12.5px;letter-spacing:1px;color:var(--text3);opacity:.75;margin-top:14px}
-/* ---------- 动效 ---------- */
-@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.web-url{margin-top:20px;font-size:12.5px;color:var(--text3);letter-spacing:1px}
+.web-url code{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;color:var(--gold-l);border:1px solid var(--line);font-size:12.5px}
+
+/* ===== 页脚 ===== */
+.foot{margin-top:36px;border-top:1px solid rgba(212,175,55,.12);padding:46px 22px 40px;text-align:center;color:var(--text3)}
+.foot .brand-l{font-size:18px;letter-spacing:6px;color:var(--text2);margin-bottom:12px}
+.foot .copy{font-size:12px;letter-spacing:1.5px;line-height:2.2}
+.foot .xim{font-size:12.5px;letter-spacing:2px;opacity:.7;margin-top:16px}
+.foot .links{margin-top:14px;display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
+.foot .links a{font-size:12px;color:var(--text2);letter-spacing:1.5px;padding:8px 10px;min-height:36px;display:inline-flex;align-items:center}
+.foot .links a:hover{color:var(--gold-l)}
+
+/* ===== 动效 ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 .fade{opacity:0}
 .fade.in{animation:fadeUp .8s ease forwards}
+@media(prefers-reduced-motion:reduce){
+  .hero .logo{animation:none}
+}
 @media(max-width:720px){
-  .nav-links a:not(.nav-cta){display:none}
-  .hero{padding:130px 18px 60px}
-  .sec{padding:64px 18px}
+  .nav-links a:not(.nav-login){display:none}
+  .nav-login{padding:8px 16px;font-size:12.5px}
+  .hero{padding:132px 16px 60px}
+  .hero h1{letter-spacing:6px;margin-left:6px}
+  .sec{padding:62px 16px}
   .web-card{padding:44px 22px}
+  .log-item{padding-left:24px}
 }
 </style>
 </head>
 <body>
 
-<!-- 导航 -->
+<!-- 顶部导航 -->
 <nav class="nav">
   <div class="nav-in">
     <a class="brand" href="#top">
@@ -123,47 +169,98 @@ body{
       <b>喜档管家</b>
     </a>
     <div class="nav-links">
-      <a href="#feats">功能介绍</a>
+      <a href="#features">特色功能</a>
       <a href="#download">下载客户端</a>
-      <a href="#web">网页版</a>
-      <a class="nav-cta" href="#download">立即下载</a>
+      <a href="#changelog">更新日志</a>
+      <a class="nav-login" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        网页登录
+      </a>
     </div>
   </div>
 </nav>
 
 <!-- Hero -->
 <header class="hero" id="top">
-  <div class="deco deco-1"></div><div class="deco deco-2"></div>
-  <div class="wrap">
+  <div class="xi" aria-hidden="true">囍</div>
+  <div class="rays" id="rays" aria-hidden="true"></div>
+  <div class="deco deco-1"></div>
+  <div class="deco deco-2"></div>
+  <div class="wrap hero-in">
     <img class="logo" src="logo.png" alt="喜档管家 Logo">
     <h1>喜档管家</h1>
     <div class="slogan">天下喜事 · 有你而庆</div>
-    <p class="desc">专为婚庆行业打造的档期管理与广场社交一体化平台。<br>档期排布、人员调度、酒店统筹、留言广场，一个客户端全部搞定，云端实时同步。</p>
+    <p class="desc">专为婚庆行业打造的<b>档期管理</b>与<b>广场社交</b>一体化平台。<br>农历档期、人员调度、酒店统筹、留言广场、订单分享，一个客户端全部搞定，云端实时同步。</p>
     <div class="hero-btns">
-      <a class="btn btn-gold" href="#download">⬇ 下载客户端</a>
-      <a class="btn btn-ghost" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">▶ 在线使用网页版</a>
+      <a class="btn btn-gold" href="#download">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载客户端
+      </a>
+      <a class="btn btn-ghost" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        在线使用网页版
+      </a>
     </div>
-    <div class="ver-tip">最新版本 <b>v1.1.0</b> · 支持 Android / Windows / macOS（Apple 芯片）· 永久免费</div>
+    <div class="tags">
+      <span class="tag">当前版本 <b>v1.1.0</b></span>
+      <span class="tag">支持 <b>Android / Windows / macOS</b></span>
+      <span class="tag">云端同步 <b>实时</b></span>
+      <span class="tag">永久免费</span>
+    </div>
   </div>
 </header>
 
-<!-- 功能 -->
-<section class="sec" id="feats">
+<!-- 特色功能 -->
+<section class="sec" id="features" style="padding-top:70px">
   <div class="wrap">
     <div class="sec-head">
-      <div class="k">Features</div>
+      <div class="k">Signature Features</div>
       <h2>为婚庆而生的一站式管家</h2>
-      <p>从接单到交付，从内部协作到行业交流，喜档管家覆盖全部场景</p>
+      <p>从接单到交付，从内部协作到行业交流，每一个细节都为喜事打磨</p>
     </div>
     <div class="feats">
-      <div class="feat fade"><div class="ic">📅</div><h3>档期管理</h3><p>订单一目了然，按日查看档期，人员到场时间、新郎抵达时间、拍摄选项清晰记录，备注随心。</p></div>
-      <div class="feat fade"><div class="ic">🗓</div><h3>后两日订单提醒</h3><p>客户端顶部滚动展示近一周订单，提前两日每日提醒一次拍摄安排，重要日子绝不遗漏。</p></div>
-      <div class="feat fade"><div class="ic">🏨</div><h3>酒店 · 厅 · 策划师</h3><p>酒店与厅名、策划师建立从属目录，下拉菜单一键选择，新数据自动归类入库，越用越顺手。</p></div>
-      <div class="feat fade"><div class="ic">👥</div><h3>人员调度</h3><p>摄影师 / 摄像师 / 主持人 / 化妆师统一人员表，同一天一人只能安排一次，防止冲突重复。</p></div>
-      <div class="feat fade"><div class="ic">💬</div><h3>留言广场</h3><p>摄影师区、摄像师区、主持人区、化妆师区、供求信息，发布主题与评论，供需对接、同行交流。</p></div>
-      <div class="feat fade"><div class="ic">☁️</div><h3>云端实时同步</h3><p>账号登录即拉取云端最新数据，任何修改实时上传，多设备登录保持一致，数据永不丢失。</p></div>
-      <div class="feat fade"><div class="ic">👑</div><h3>主账号 / 子账号</h3><p>主账号统一管理子账号与全部数据；子账号只读查看，权限清晰，多人协作无忧。</p></div>
-      <div class="feat fade"><div class="ic">🛡</div><h3>多端覆盖</h3><p>Android / Windows / macOS 原生安装包 + 网页版，随时随地打开即用，数据全端互通。</p></div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div>
+        <span class="hot">新</span>
+        <h3>档期日历 · 农历同步</h3>
+        <p>日期格同步显示农历与订单数量，初一标注月名、闰月清晰可辨。按日查看档期，人员到场、新郎抵达、拍摄选项一目了然。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <span class="hot">新</span>
+        <h3>人员占用 · 单击请假</h3>
+        <p>统一人员表，同一天一人只能排一场，被占用自动置灰。人员占用列表单击名字即标记请假变红，云端实时同步，再点取消。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M10 10h.01"/><path d="M14 10h.01"/></svg></div>
+        <h3>酒店 · 厅 · 策划师</h3>
+        <p>酒店、厅名、策划师按从属目录建立，下拉菜单一键选择；下拉菜单可直接输入新名称，保存后自动归类入库，越用越顺手。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>多级账号权限</h3>
+        <p>主账号统一管理子账号与全部数据，子账号只读协作；同一账号限三台设备在线，最新登录可强制退出旧设备，安全可控。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></div>
+        <h3>留言广场 · 六大板块</h3>
+        <p>摄影师、摄像师、主持人、化妆师、策划师、供求信息六大板块，带头像昵称发布主题与评论；供求回复可见电话，只对回复者展示。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 4 8 7 11 3-3 7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+        <h3>订单分享 · 一键成图</h3>
+        <p>订单预览框内置分享按钮，一键预览全部信息并自动保存为图片，文字自动折行完整显示，交付沟通、客户确认更高效。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <h3>后两日订单提醒</h3>
+        <p>顶部滚动展示近一周订单，提前两日每日提醒一次拍摄安排；后两日订单双条并排，重要日子绝不遗漏。</p>
+      </div>
+      <div class="feat fade">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a2 2 0 0 0 0-4h-1.42a7.96 7.96 0 0 0-.89-6z"/><polyline points="13 7 17 7 17 11"/></svg></div>
+        <h3>云端实时同步</h3>
+        <p>登录即增量同步云端最新数据，客户、档期、订单元数据优先加载；任何修改实时上传，多设备登录保持一致，数据永不丢失。</p>
+      </div>
     </div>
   </div>
 </section>
@@ -174,46 +271,116 @@ body{
     <div class="sec-head">
       <div class="k">Download</div>
       <h2>下载客户端</h2>
-      <p>选择你的设备，下载安装包，登录即可使用 · 当前版本 v1.1.0</p>
+      <p>选择你的设备，下载安装包即可使用 · 当前版本 v1.1.0</p>
     </div>
     <div class="dl-grid">
       <div class="dl-card fade">
-        <div class="os">🤖</div>
+        <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none"/><line x1="9" y1="5.5" x2="15" y2="5.5"/></svg></div>
         <h3>Android</h3>
-        <div class="meta">安装包 <b>APK</b> · 约 4 MB · Android 5.1+</div>
-        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/xidang-guanjia-1.1.0.apk" download>⬇ 下载安卓版</a>
+        <div class="meta">安装包 <b>APK</b> · 约 4 MB<br>Android 5.1 及以上</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/xidang-guanjia-1.1.0.apk" download>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下载安卓版
+        </a>
       </div>
       <div class="dl-card fade">
-        <div class="os">🪟</div>
+        <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg></div>
         <h3>Windows</h3>
-        <div class="meta">安装包 <b>EXE</b> · 约 86 MB · Windows 7+ x64</div>
-        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/XidangGuanjia-Setup-1.1.0.exe" download>⬇ 下载 Windows 版</a>
+        <div class="meta">安装包 <b>EXE</b> · 约 86 MB<br>Windows 7+ x64</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/XidangGuanjia-Setup-1.1.0.exe" download>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下载 Windows 版
+        </a>
       </div>
       <div class="dl-card fade">
-        <div class="os">🍎</div>
+        <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5C12 4.9 13.7 2.5 16.2 2.5c.6 1.7-.4 3.6-1.9 4.9-1.3 1.1-2.3 1.4-2.3.1z"/><path d="M16.5 6.7c2.1-.3 4.2 1 4.5 3 .8.4 1.4 1.1 1.8 2-.5 1-2.3 3.8-4.4 3.8-1 0-1.6-.5-2.7-.5s-1.6.5-2.6.5c-2.1 0-3.9-2.7-4.4-3.7C6.8 10 5.7 7.7 7.3 6.5c1.2-.9 3.4-.5 4.6.4.6.4 1.5.4 2.1 0 1-.7 1.9-1 2.5-.9z"/></svg></div>
         <h3>macOS</h3>
-        <div class="meta">安装包 <b>DMG</b> · 约 107 MB · Apple 芯片（M 系列）</div>
-        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/xidang-guanjia-1.1.0-arm64.dmg" download>⬇ 下载 Mac 版</a>
+        <div class="meta">安装包 <b>DMG</b> · 约 107 MB<br>Apple 芯片（M 系列）</div>
+        <a class="btn btn-dl" href="https://github.com/mjz1024/maodou-schedule/releases/download/v1.1.0/xidang-guanjia-1.1.0-arm64.dmg" download>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下载 Mac 版
+        </a>
       </div>
       <div class="dl-card fade">
-        <div class="os">🍏</div>
+        <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.6"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/></svg></div>
         <h3>iPhone / iPad</h3>
-        <div class="meta">免安装 · Safari 打开网页版<br>「分享 → 添加到主屏幕」，全屏图标直达</div>
-        <a class="btn btn-dl" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">▶ 打开网页版</a>
+        <div class="meta">免安装 · 打开网页版<br>「分享 → 添加到主屏幕」直达</div>
+        <a class="btn btn-dl" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          打开网页版
+        </a>
       </div>
     </div>
-    <p style="text-align:center;color:var(--text3);font-size:12.5px;margin-top:26px;letter-spacing:1px">💡 提示：安装时如遇系统安全提示，请选择「仍要打开 / 更多信息 → 仍要运行」；Mac 用户首次打开请右键图标选择「打开」。</p>
+    <p class="dl-tip">安装提示：如遇系统安全提示，请选择「仍要打开 / 更多信息 → 仍要运行」；Mac 用户首次打开请右键图标选择「打开」。</p>
+  </div>
+</section>
+
+<!-- 更新日志 -->
+<section class="sec" id="changelog">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="k">Changelog</div>
+      <h2>更新日志</h2>
+      <p>持续迭代，每一次更新都为喜事更顺一点</p>
+    </div>
+    <div class="log-wrap">
+      <div class="log-item fade">
+        <span class="v">v1.1.0 <em>2026年10月</em></span>
+        <h4>农历档期 · 人员请假 · 搜索增强</h4>
+        <ul>
+          <li>档期日历日期格加入农历显示，初一标注月名、闰月可辨</li>
+          <li>人员占用列表单击标记请假（变红）并云端同步，再点取消</li>
+          <li>请假人员当天在人员下拉菜单置灰不可选，显示"当天请假"</li>
+          <li>档期搜索支持人员、客户、酒店、厅名、策划师等全字段检索</li>
+          <li>主文件与 Android / Windows / macOS 三端工程同步更新</li>
+        </ul>
+      </div>
+      <div class="log-item fade">
+        <span class="v">v1.1.0 <em>2026年9月</em></span>
+        <h4>分享成图 · 登录提速 · 主题切换</h4>
+        <ul>
+          <li>订单预览框新增分享按钮，一键生成完整信息图片并保存</li>
+          <li>全量同步改增量同步，客户、档期、订单元数据优先加载，登录显著提速</li>
+          <li>主题色圆点切换：黑金 / 白粉 / 香槟，手动选择即生效</li>
+          <li>后两日订单滚动提醒改为双条并排展示</li>
+          <li>客户端账号密码默认保留 7 天；所有平台登录显示数据加载进度</li>
+        </ul>
+      </div>
+      <div class="log-item fade">
+        <span class="v">v1.1.0 <em>2026年9月</em></span>
+        <h4>广场大升级 · 六大板块</h4>
+        <ul>
+          <li>新增摄影师、摄像师、主持人、化妆师、策划师、供求信息板块</li>
+          <li>发布需带头像与昵称，发布时弹出免责公告</li>
+          <li>供求板块回复可见电话号码，仅对回复者展示</li>
+          <li>主账号可删除子账号发布的主题帖子</li>
+        </ul>
+      </div>
+      <div class="log-item fade">
+        <span class="v">v1.0 <em>2026年9月</em></span>
+        <h4>权限体系 · 多端发布</h4>
+        <ul>
+          <li>主账号 / 子账号体系：子账号只读，主账号可删改全部订单</li>
+          <li>超管面板：目录树管理账号、封禁、删除、导出任意主账号订单</li>
+          <li>同一账号限三台设备同时在线，最新登录可强制退出旧设备</li>
+          <li>Android / Windows / macOS 三端原生安装包发布</li>
+        </ul>
+      </div>
+      <div class="log-more">更多细节，登录客户端体验</div>
+    </div>
   </div>
 </section>
 
 <!-- 网页版 -->
-<section class="sec" id="web">
+<section class="sec" id="web" style="padding-top:10px">
   <div class="wrap">
     <div class="web-card fade">
-      <div class="web-ico">🌐</div>
       <h2>网页版 · 免安装即用</h2>
       <p>无需下载，浏览器打开即可登录使用。与客户端数据完全互通，电脑、手机、平板随时切换，适合快速查看档期与广场动态。</p>
-      <a class="btn btn-gold" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">▶ 立即体验网页版</a>
+      <a class="btn btn-gold" href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        立即体验网页版
+      </a>
       <div class="web-url">访问地址：<code>https://mjz1024.github.io/maodou-schedule/</code></div>
     </div>
   </div>
@@ -222,11 +389,43 @@ body{
 <!-- 页脚 -->
 <footer class="foot">
   <div class="brand-l">喜档管家</div>
-  <div class="copy">天下喜事 · 有你而庆<br>婚庆档期智能管理平台 · 多端覆盖 · 云端同步</div>
-  <div class="xim">————FROM XIMAVISION————</div>
+  <div class="copy">天下喜事 · 有你而庆<br>婚庆档期智能管理平台 · 多端覆盖 · 云端同步 · 永久免费</div>
+  <div class="links">
+    <a href="https://mjz1024.github.io/maodou-schedule/" target="_blank" rel="noopener">网页登录</a>
+    <a href="#download">下载客户端</a>
+    <a href="#changelog">更新日志</a>
+  </div>
+  <div class="xim">———— FROM XIMAVISION ————</div>
 </footer>
 
 <script>
+// Hero 金线放射
+(function(){
+  var rays=document.getElementById('rays');
+  var n=16;
+  for(var i=0;i<n;i++){
+    var r=document.createElement('div');
+    r.className='ray';
+    var a=(360/n)*i;
+    r.style.transform='rotate('+a+'deg)';
+    r.style.transition='width 1.6s ease-out';
+    rays.appendChild(r);
+  }
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    var rs=rays.querySelectorAll('.ray');
+    rs.forEach(function(r){r.style.width='340px';});
+  });});
+  // 光晕跟随鼠标（桌面端）
+  var hero=document.querySelector('.hero');
+  var d1=document.querySelector('.deco-1'),d2=document.querySelector('.deco-2');
+  if(window.matchMedia('(pointer:fine)').matches){
+    hero.addEventListener('mousemove',function(e){
+      var x=(e.clientX/innerWidth-.5)*40, y=(e.clientY/innerHeight-.5)*30;
+      d1.style.transition='transform .4s ease-out'; d1.style.transform='translate('+(-x)+'px,'+(-y)+'px)';
+      d2.style.transition='transform .4s ease-out'; d2.style.transform='translate('+x+'px,'+y+'px)';
+    });
+  }
+})();
 // 滚动渐入
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
 document.querySelectorAll('.fade').forEach(function(el){io.observe(el);});
