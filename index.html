@@ -4195,7 +4195,8 @@ function renderCalendar(){
   if(allPeople.length){
     const occCount=Object.keys(occSet).length;
     const leaveCount=Object.keys(leaveSet).length;
-    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · 订单'+dayScheds.length+'单 · 人员'+occCount+'人'+(leaveCount?(' · 请假'+leaveCount+'人'):'')+'</span><span style="font-size:10px;color:var(--text3);font-weight:400">（单击请假 · 长按查单）</span></div><div class="occ-list">';
+    const totalCount=allPeople.length;
+    html+='<div class="occ-panel"><div class="occ-title">人员占用<span class="occ-date">'+esc(occDate)+' · 订单'+dayScheds.length+'单 · 占用'+occCount+'人 · 共'+totalCount+'人'+(leaveCount?(' · 请假'+leaveCount+'人'):'')+'</span><span style="font-size:10px;color:var(--text3);font-weight:400">（单击请假 · 长按查单）</span></div><div class="occ-list">';
     allPeople.forEach(function(nm){
       const busy=!!occSet[nm];
       const leave=!!leaveSet[nm];
